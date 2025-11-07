@@ -1,31 +1,43 @@
+# monitoring/admin.py
+"""
+Custom Django admin configuration for the 'monitoring' app.
+
+Features:
+- BaseIconAdmin: reusable admin base that adds an "Actions" column with Edit/Delete links.
+- DeviceAdmin: custom device permissions (non-superusers only see own devices).
+- HistoryAdmin: read-only history view (no add/change/delete).
+- MonitoringAdminSite: custom AdminSite that groups models into logical sections
+  (Monitoring, Device Blueprints, Polling Configuration, Authentication).
+- All models are registered to the custom admin site (custom_admin_site).
+"""
+
 from django.contrib import admin
+from django.contrib.auth.models import User, Group
 from django.urls import reverse
 from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
 from .models import (
-    Brand, DeviceType, Metric, DeviceModel, 
+    Brand, DeviceType, Metric, DeviceModel,
     Device, Interface, OidMap, History, Threshold
 )
 
+
 # ----------------------------------------------------
-# A "Base" class to add Edit/Delete icons
+# Reusable Base class that adds an "Actions" column
 # ----------------------------------------------------
 class BaseIconAdmin(admin.ModelAdmin):
     """
-    This is a "base class" we can reuse. It adds our custom
-    'action_buttons' column to any model that inherits it.
+    Base admin class to reuse an 'action_buttons' column across simple models.
+    It dynamically chooses a sensible 'name' field for the list display
+    (brand_name, type_name, metric_name, or __str__ fallback).
     """
-    
-    # --- THIS LINE WAS REMOVED ---
-    # list_display = ('name_field', 'action_buttons') 
-    # ^^^ THIS WAS CAUSING THE CRASH.
-    # We will *only* use the 'get_list_display' function below.
 
     def get_list_display(self, request):
         """
-        This function is called by Django to get the list of columns.
-        It dynamically finds the correct 'name' field
-        (e.g., 'brand_name' or 'type_name') for the model.
+        Dynamically decide which 'name' field to show (so this base can be reused).
+        Returns a tuple of (name_field, 'action_buttons').
         """
+        # Determine sensible name field for the current model
         if hasattr(self.model, 'brand_name'):
             name_field = 'brand_name'
         elif hasattr(self.model, 'type_name'):
@@ -33,160 +45,298 @@ class BaseIconAdmin(admin.ModelAdmin):
         elif hasattr(self.model, 'metric_name'):
             name_field = 'metric_name'
         else:
-            # Fallback if we can't find a name
-            name_field = '__str__' # This shows the default string name
-            
-        # Return the final tuple of columns to display
+            # fallback to model's __str__ representation
+            name_field = '__str__'
+
         return (name_field, 'action_buttons')
 
     def action_buttons(self, obj):
         """
-        Renders Edit (✏️) and Delete (❌) icons.
-        'obj' is the item in the row (e.g., the "Cisco" brand).
+        Render Edit and Delete links for each row in the list view.
+        We use reverse(...) to build correct admin URLs.
         """
-        
-        # 'reverse' finds the URL for a specific admin page
         change_url = reverse(
-            f'admin:{obj._meta.app_label}_{obj._meta.model_name}_change', 
+            f'admin:{obj._meta.app_label}_{obj._meta.model_name}_change',
             args=[obj.pk]
         )
         delete_url = reverse(
-            f'admin:{obj._meta.app_label}_{obj._meta.model_name}_delete', 
+            f'admin:{obj._meta.app_label}_{obj._meta.model_name}_delete',
             args=[obj.pk]
         )
-        
-        # 'format_html' safely renders HTML
+
+        # format_html safely outputs HTML into Django admin list cell
         return format_html(
             '<a href="{}">✏️ Edit</a> | <a href="{}">❌ Delete</a>',
-            change_url,
-            delete_url
+            change_url, delete_url
         )
-    # This sets the human-readable column header name
+
     action_buttons.short_description = 'Actions'
 
 
-# Register the simple models using the new BaseIconAdmin
-@admin.register(Brand)
+# ----------------------------------------------------
+# Custom AdminSite: group and order the sidebar items
+# ----------------------------------------------------
+class MonitoringAdminSite(admin.AdminSite):
+    """
+    Custom AdminSite that reorders and groups the models into logical sections.
+    The `get_app_list` method returns a custom list structure representing groups.
+    """
+    site_header = "Django Administration"
+    site_title = "Monitoring Admin"
+    index_title = "Network Monitoring Control Panel"
+
+    def get_app_list(self, request):
+        """
+        Build a grouped app/model list for the sidebar. This returns a list of
+        group-dictionaries (name + models). We look up registered models
+        from the default app_list returned by the parent.
+        """
+        app_list = super().get_app_list(request)
+
+        grouped = [
+            {
+                "name": _("Monitoring"),
+                "models": [
+                    self._find_model(app_list, "Device"),
+                    self._find_model(app_list, "History"),
+                    self._find_model(app_list, "Interface"),
+                ],
+            },
+            {
+                "name": _("Device Blueprints"),
+                "models": [
+                    self._find_model(app_list, "Brand"),
+                    self._find_model(app_list, "DeviceModel"),
+                    self._find_model(app_list, "DeviceType"),
+                ],
+            },
+            {
+                "name": _("Polling Configuration"),
+                "models": [
+                    self._find_model(app_list, "Metric"),
+                    self._find_model(app_list, "OidMap"),
+                    self._find_model(app_list, "Threshold"),
+                ],
+            },
+            {
+                "name": _("Authentication"),
+                "models": [
+                    self._find_model(app_list, "Group", app_label="auth"),
+                    self._find_model(app_list, "User", app_label="auth"),
+                ],
+            },
+        ]
+
+        # strip out any None models (not registered) to avoid empty entries
+        for group in grouped:
+            group["models"] = [m for m in group["models"] if m]
+
+        return grouped
+
+    def _find_model(self, app_list, model_name, app_label="monitoring"):
+        """
+        Helper: find a specific model dictionary in the app_list by object_name.
+        Returns the model dict or None.
+        """
+        for app in app_list:
+            if app.get("app_label") == app_label:
+                for model in app.get("models", []):
+                    if model.get("object_name") == model_name:
+                        return model
+        return None
+
+
+# Instantiate the custom admin site
+custom_admin_site = MonitoringAdminSite(name="monitoring_admin")
+
+
+# ----------------------------------------------------
+# Register simple models reusing BaseIconAdmin
+# ----------------------------------------------------
 class BrandAdmin(BaseIconAdmin):
+    """Admin for Brand model (simple listing with action icons)."""
+    # Extra niceties can be added (search_fields, list_filter) as needed.
     pass
 
-@admin.register(DeviceType)
 class DeviceTypeAdmin(BaseIconAdmin):
+    """Admin for DeviceType model (simple listing with action icons)."""
     pass
 
-@admin.register(Metric)
 class MetricAdmin(BaseIconAdmin):
+    """Admin for Metric model (simple listing with action icons)."""
     pass
 
+
+# Register them with the custom admin site
+custom_admin_site.register(Brand, BrandAdmin)
+custom_admin_site.register(DeviceType, DeviceTypeAdmin)
+custom_admin_site.register(Metric, MetricAdmin)
+
+
 # ----------------------------------------------------
-# Custom "Device" admin with permissions
+# DeviceAdmin: custom list, permissions, and action icons
 # ----------------------------------------------------
-@admin.register(Device)
 class DeviceAdmin(admin.ModelAdmin):
-    
-    # --- Configuration for the List View ---
+    """
+    Admin for Device model with:
+    - list view columns including action buttons
+    - per-user visibility (non-superusers see only their devices)
+    - make 'user' readonly on edit pages
+    - automatically assign current user when creating new device in admin
+    """
+
     list_display = ('hostname', 'ip_address', 'model', 'user', 'action_buttons')
     list_filter = ('model', 'user')
-    
-    # --- Configuration for the "Add/Edit" Form ---
-    
+    search_fields = ('hostname', 'ip_address')
+
     def get_readonly_fields(self, request, obj=None):
         """
-        This controls which fields are "read-only" on the edit page.
+        On edit (obj exists) make the 'user' field readonly so ownership is preserved.
         """
-        if obj: # If this is an "Edit" page (obj exists)
-            return ('user',) # Make 'user' read-only
-        return () # On an "Add" page, no fields are read-only
+        if obj:
+            return ('user',)
+        return ()
 
     def save_model(self, request, obj, form, change):
         """
-        This is called when an admin clicks "Save".
+        When a new Device is created in admin, set the owner/user to the logged-in user.
         """
-        if not obj.pk: # If this is a new device
-            obj.user = request.user # Assign the logged-in user as the owner
+        if not obj.pk:
+            obj.user = request.user
         super().save_model(request, obj, form, change)
-        
-    # --- PERMISSIONS LOGIC ---
 
+    # --- Permissions logic to restrict edit/delete to owner or superuser ---
     def get_queryset(self, request):
-        """
-        This controls which devices appear in the list.
-        """
         qs = super().get_queryset(request)
-        if request.user.is_superuser: # If Admin
-            return qs  # Show all devices
-        return qs.filter(user=request.user) # If User, show only their own
+        if request.user.is_superuser:
+            return qs
+        return qs.filter(user=request.user)
 
     def has_change_permission(self, request, obj=None):
-        """
-        This controls who can access the "Edit" page for a device.
-        """
-        if not obj: # We are on the list view
+        # allow list view; for object-level ensure owner or superuser
+        if obj is None:
             return True
-        # We are on an "Edit" page
         return request.user.is_superuser or obj.user == request.user
 
     def has_delete_permission(self, request, obj=None):
-        """
-        This controls who can delete a device.
-        """
-        if not obj: # We are on the list view
+        if obj is None:
             return True
-        # We are on an "Edit" page
         return request.user.is_superuser or obj.user == request.user
 
-    # --- ACTIONS ICON COLUMN ---
-    
+    # --- Actions column specific for Devices ---
     def action_buttons(self, obj):
-        """
-        Custom actions column just for the Device list.
-        """
         change_url = reverse(
-            f'admin:{obj._meta.app_label}_{obj._meta.model_name}_change', 
+            f'admin:{obj._meta.app_label}_{obj._meta.model_name}_change',
             args=[obj.pk]
         )
         delete_url = reverse(
-            f'admin:{obj._meta.app_label}_{obj._meta.model_name}_delete', 
+            f'admin:{obj._meta.app_label}_{obj._meta.model_name}_delete',
             args=[obj.pk]
         )
         return format_html(
             '<a href="{}">✏️ Edit</a> | <a href="{}">❌ Delete</a>',
-            change_url,
-            delete_url
+            change_url, delete_url
         )
+
     action_buttons.short_description = 'Actions'
 
+
+# Register Device with custom admin site
+custom_admin_site.register(Device, DeviceAdmin)
+
+
 # ----------------------------------------------------
-# NEW: Create a READ-ONLY view for the History
+# HistoryAdmin: read-only in admin
 # ----------------------------------------------------
-@admin.register(History)
 class HistoryAdmin(admin.ModelAdmin):
     """
-    This makes the History table read-only in the admin.
-    No one can add, edit, or delete history manually.
+    Make History read-only from admin; no add/change/delete allowed.
+    Useful so operators can browse collected records but not alter them.
     """
-    # 1. Define what columns to show in the list view
     list_display = ('timestamp', 'device', 'metric', 'interface', 'value')
-    # 2. Add filters to the sidebar
     list_filter = ('timestamp', 'device', 'metric')
+    search_fields = ('device__hostname', 'metric__metric_name')
 
-    # 3. This function REMOVES the "Add" button
     def has_add_permission(self, request):
         return False
 
-    # 4. This function REMOVES the "Edit" link
     def has_change_permission(self, request, obj=None):
+        # Prevent editing individual history entries
         return False
-        
-    # 5. This function REMOVES the "Delete" action
+
     def has_delete_permission(self, request, obj=None):
         return False
 
+
+custom_admin_site.register(History, HistoryAdmin)
+
+
 # ----------------------------------------------------
-# Register the remaining models normally
+# Register remaining models with sensible defaults
 # ----------------------------------------------------
-admin.site.register(DeviceModel)
-admin.site.register(Interface)
-admin.site.register(OidMap)
-# admin.site.register(History)
-admin.site.register(Threshold)
+class DeviceModelAdmin(admin.ModelAdmin):
+    """Admin for DeviceModel (blueprint for devices)."""
+    list_display = ('model_name', 'brand', 'type')
+    list_filter = ('brand', 'type')
+    search_fields = ('model_name',)
+
+class InterfaceAdmin(admin.ModelAdmin):
+    """Admin for Interface records."""
+    list_display = ('device', 'ifIndex', 'ifName', 'ifDescr', 'ifAlias')
+    search_fields = ('device__hostname', 'ifName', 'ifDescr')
+
+class OidMapAdmin(admin.ModelAdmin):
+    """Admin for OidMap: maps model -> metric -> oid."""
+    list_display = ('model', 'metric', 'oid', 'description')
+    search_fields = ('oid', 'description')
+
+class ThresholdAdmin(admin.ModelAdmin):
+    """Admin for Threshold rules."""
+    list_display = ('device', 'metric', 'interface', 'condition', 'value', 'alert_level')
+    search_fields = ('device__hostname', 'metric__metric_name')
+
+custom_admin_site.register(DeviceModel, DeviceModelAdmin)
+custom_admin_site.register(Interface, InterfaceAdmin)
+custom_admin_site.register(OidMap, OidMapAdmin)
+custom_admin_site.register(Threshold, ThresholdAdmin)
+
+
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+
+# ----------------------------------------------------
+# Register Django auth models properly to restore permissions
+# ----------------------------------------------------
+custom_admin_site.register(Group)
+
+@admin.register(User, site=custom_admin_site)
+class UserAdmin(BaseUserAdmin):
+    """
+    Custom registration of the User model under the custom admin site.
+    Retains all permission-related fields such as is_superuser, is_staff, groups, and permissions.
+    """
+    fieldsets = BaseUserAdmin.fieldsets
+    add_fieldsets = BaseUserAdmin.add_fieldsets
+    list_display = ('username', 'email', 'is_staff', 'is_superuser', 'is_active')
+    list_filter = ('is_superuser', 'is_staff', 'is_active')
+    search_fields = ('username', 'email')
+    ordering = ('username',)
+
+
+
+# ----------------------------------------------------
+# NOTE TO DEVELOPER
+# ----------------------------------------------------
+# To use this custom admin site, update your project's urls.py:
+#
+#    # project/urls.py
+#    from django.urls import path, include
+#    from monitoring.admin import custom_admin_site
+#
+#    urlpatterns = [
+#        path('admin/', custom_admin_site.urls),
+#        # ... other urls ...
+#    ]
+#
+# If you keep the default admin.site in urls.py, you will *not* see the grouped sidebar.
+#
+# End of file.
