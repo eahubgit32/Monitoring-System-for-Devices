@@ -68,6 +68,9 @@ class Device(models.Model):
     # Device IP address (unique for each device)
     ip_address = models.CharField(max_length=45, unique=True)
 
+    # Optional subnet mask 
+    subnet_mask = models.CharField(max_length=45, blank=True, null=True)
+
     # References the model of this device
     model = models.ForeignKey(DeviceModel, on_delete=models.RESTRICT)
 

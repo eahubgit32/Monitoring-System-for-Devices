@@ -156,6 +156,31 @@ class DeviceAdmin(admin.ModelAdmin):
         )
     action_buttons.short_description = 'Actions'
 
+# ----------------------------------------------------
+# NEW: Create a READ-ONLY view for the History
+# ----------------------------------------------------
+@admin.register(History)
+class HistoryAdmin(admin.ModelAdmin):
+    """
+    This makes the History table read-only in the admin.
+    No one can add, edit, or delete history manually.
+    """
+    # 1. Define what columns to show in the list view
+    list_display = ('timestamp', 'device', 'metric', 'interface', 'value')
+    # 2. Add filters to the sidebar
+    list_filter = ('timestamp', 'device', 'metric')
+
+    # 3. This function REMOVES the "Add" button
+    def has_add_permission(self, request):
+        return False
+
+    # 4. This function REMOVES the "Edit" link
+    def has_change_permission(self, request, obj=None):
+        return False
+        
+    # 5. This function REMOVES the "Delete" action
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 # ----------------------------------------------------
 # Register the remaining models normally
@@ -163,5 +188,5 @@ class DeviceAdmin(admin.ModelAdmin):
 admin.site.register(DeviceModel)
 admin.site.register(Interface)
 admin.site.register(OidMap)
-admin.site.register(History)
+# admin.site.register(History)
 admin.site.register(Threshold)
