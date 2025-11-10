@@ -172,32 +172,31 @@ const DiscoverDevice = () => {
   // Device Details Display
   const renderDeviceDetails = () => {
     const { 
-        hostname, 
-        ip_address, 
-        model_id_raw, 
-        applicable_measurements, 
-        interfaces 
+      hostname, 
+      ip_address, 
+      model_id_raw, 
+      applicable_measurements, 
+      interfaces 
     } = deviceDetails;
 
     // Helper to format OID/Measurement values
     const formatValue = (key) => {
-        const measurement = applicable_measurements[key];
-        // Handle case where SNMP value retrieval failed for a specific OID
-        if (measurement.note && measurement.note.includes("error")) return <span style={{fontSize: '0.875rem', color: '#ef4444', fontStyle: 'italic'}}>N/A (Error)</span>;
-        if (measurement.value === "SNMP Error: No OID Found") return <span style={{fontSize: '0.875rem', color: '#6b7280', fontStyle: 'italic'}}>N/A</span>;
-        
-        // Simple formatting helper (bytes for memory, percent for CPU)
-        if (key.includes('memory')) {
-            const bytes = parseInt(measurement.value, 10);
-            if (isNaN(bytes)) return <span style={{fontSize: '0.875rem', color: '#6b7280', fontStyle: 'italic'}}>N/A ({measurement.value})</span>;
-
-            // Convert bytes to MB for display
-            return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
-        }
-        if (key.includes('cpu')) {
-             return `${measurement.value} %`;
-        }
-        return measurement.value; // Default return for other types
+      const measurement = applicable_measurements[key];
+      // Handle case where SNMP value retrieval failed for a specific OID
+      if (measurement.note && measurement.note.includes("error")) return <span className="value-error-note">N/A (Error)</span>;
+      if (measurement.value === "SNMP Error: No OID Found") return <span className="value-na-note">N/A</span>;
+      
+      // Simple formatting helper (bytes for memory, percent for CPU)
+      if (key.includes('memory')) {
+        const bytes = parseInt(measurement.value, 10);
+        if (isNaN(bytes)) return <span className="value-na-note">N/A ({measurement.value})</span>;
+        // Convert bytes to MB for display
+        return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+      }
+      if (key.includes('cpu')) {
+        return `${measurement.value} %`;
+      }
+      return measurement.value; // Default return for other types
     };
     
     // Helper to format Measurement Key name (e.g., cpu_usage -> CPU Usage)
@@ -206,58 +205,58 @@ const DiscoverDevice = () => {
 
     // Return of Device Details
     return (
-      <div style={{backgroundColor: '#ffffff', padding: '2.5rem', borderRadius: '0.75rem', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)', width: '100%', maxWidth: '960px', margin: 'auto', display: 'flex', flexDirection: 'column', gap: '2rem'}}>
-        
-        <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'space-between', borderBottom: '1px solid #e5e7eb', paddingBottom: '1rem', marginBottom: '1rem'}}>
-            <h1 style={{fontSize: '1.875rem', fontWeight: '800', color: '#4f46e5', marginBottom: '0.75rem'}}>
-                Discovery Results: {hostname}
-            </h1>
-            <button 
-                onClick={() => resetDeviceDetails(null)} 
-                style={{padding: '0.5rem 1rem', backgroundColor: '#f3f4f6', color: '#4b5563', borderRadius: '0.5rem', transition: 'background-color 0.15s', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', display: 'flex', alignItems: 'center', fontWeight: '500', border: 'none', cursor: 'pointer'}}
-                onMouseOver={e => e.currentTarget.style.backgroundColor = '#e5e7eb'}
-                onMouseOut={e => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-            >
-                <span style={{fontSize: '1.25rem', marginRight: '0.5rem'}}>←</span> New Search
-            </button>
+      <div className="details-main-container">
+        <div className="details-header-wrapper">
+          <h1 className="details-title">
+            Discovery Results: {hostname}
+          </h1>
+          <button 
+            onClick={() => resetDeviceDetails(null)} 
+            className="new-search-button"
+            onMouseOver={e => e.currentTarget.style.backgroundColor = '#e5e7eb'}
+            onMouseOut={e => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+          >
+            <span className="button-icon-large">←</span> New Search
+          </button>
         </div>
         
         {/* General Info Card */}
-        <div style={{backgroundColor: '#eef2ff', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #c7d2fe', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'}}>
-            <h2 style={{fontSize: '1.25rem', fontWeight: '600', color: '#3730a3', marginBottom: '0.75rem', borderBottom: '1px solid #a5b4fc', paddingBottom: '0.5rem'}}>Overview</h2>
-            <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', color: '#374151'}}>
-                <p><strong>IP Address:</strong> {ip_address}</p>
-                <p style={{wordBreak: 'break-all'}}><strong>Raw Model ID (OID):</strong> {model_id_raw}</p>
-            </div>
+        <div className="info-card-container">
+          <h2 className="info-card-title">Overview</h2>
+          <div className="info-grid">
+            <p><strong>IP Address:</strong> {ip_address}</p>
+            <p className="info-long-text"><strong>Raw Model ID (OID):</strong> {model_id_raw}</p>
+          </div>
         </div>
 
         {/* Measurements/Metrics Section */}
-        <div style={{backgroundColor: '#ffffff', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #e5e7eb', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}}>
-            <h2 style={{fontSize: '1.25rem', fontWeight: '600', color: '#1f2937', marginBottom: '1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem'}}>Applicable Metrics</h2>
-            <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem'}}>
-                {Object.keys(applicable_measurements).map(key => (
-                    <div key={key} style={{padding: '1rem', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '0.5rem', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)'}}>
-                        <p style={{fontSize: '0.875rem', fontWeight: '500', color: '#6b7280', marginBottom: '0.25rem'}}>
-                            {formatKeyName(key)}
-                        </p>
-                        <p style={{fontSize: '1.125rem', fontWeight: '700', color: '#1f2937'}}>
-                            {formatValue(key)}
-                            {key.includes('cpu') && <span style={{fontSize: '0.75rem', color: '#6b7280', marginLeft: '0.5rem'}}>(Last 5 Mins)</span>}
-                            {key.includes('memory') && <span style={{fontSize: '0.75rem', color: '#6b7280', marginLeft: '0.5rem'}}>(Estimated)</span>}
-                        </p>
-                    </div>
-                ))}
-            </div>
+        <div className="metrics-card-container">
+          <h2 className="metrics-card-title">Applicable Metrics</h2>
+          <div className="metrics-grid">
+            {Object.keys(applicable_measurements).map(key => (
+              <div key={key} className="metric-item">
+                <p className="metric-label">
+                  {formatKeyName(key)}
+                </p>
+                <p className="metric-value">
+                  {formatValue(key)}
+                  {key.includes('cpu') && <span className="metric-note-small">(Last 5 Mins)</span>}
+                  {key.includes('memory') && <span className="metric-note-small">(Estimated)</span>}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Interfaces Section */}
-        <div style={{backgroundColor: '#ffffff', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #e5e7eb', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}}>
-            <h2 style={{fontSize: '1.25rem', fontWeight: '600', color: '#1f2937', marginBottom: '1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem'}}>Enabled Interfaces ({interfaces ? interfaces.names.length : 0})</h2>
+        <div className="interfaces-card-container">
+            <h2 className="interfaces-card-title">Enabled Interfaces ({interfaces ? interfaces.names.length : 0})</h2>
 
             {interfaces && interfaces.names.length > 0 ? (
-                <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.5rem', fontSize: '0.875rem', maxHeight: '12rem', overflowY: 'auto', padding: '0.5rem', border: '1px dashed #d1d5db', borderRadius: '0.5rem'}}>
+                <div className="interface-list-wrapper">
                     {interfaces.names.map((name, index) => (interfaces.oper_status[index].startsWith('up') ? (
-                        <span key={index} style={{backgroundColor: '#d1fae5', color: '#065f46', padding: '0.25rem 0.75rem', borderRadius: '9999px', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', transition: 'background-color 0.1s'}}
+                        <span key={index}
+                        className="interface-tag"
                         onMouseOver={e => e.currentTarget.style.backgroundColor = '#a7f3d0'}
                         onMouseOut={e => e.currentTarget.style.backgroundColor = '#d1fae5'}
                         >
@@ -266,7 +265,7 @@ const DiscoverDevice = () => {
                     ) : (null)))}
                 </div>
             ) : (
-                <p style={{color: '#6b7280', fontStyle: 'italic'}}>No enabled interfaces.</p>
+                <p className="info-placeholder-text">No enabled interfaces.</p>
             )}
         </div>
         
