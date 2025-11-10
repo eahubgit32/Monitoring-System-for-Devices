@@ -10,6 +10,7 @@ body, #root {
     /* Prevent horizontal scrollbar */
     width: 100%;
     overflow-x: hidden; 
+    background-color: #f9fafb; /* Light background for the screen */
 }
 
 /* --- Container for the entire application --- */
@@ -31,14 +32,15 @@ body, #root {
    ------------------------------------------------------------------- */
 .form-card {
     width: 100%;
-    max-width: 512px; /* max-w-lg - prevents the card from getting too wide on desktop */
+    max-width: 40rem; /* max-w-lg - prevents the card from getting too wide on desktop */
     background-color: #ffffff;
-    padding: 40px;
+    padding: 2rem;
     border-radius: 12px; /* rounded-xl */
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); /* shadow-2xl */
     border: 1px solid #f3f4f6; /* border-gray-100 */
     /* Ensure the card does not shrink too much vertically on smaller content */
     min-height: 400px; 
+    margin: auto;
 }
 
 /* --- Headings --- */
@@ -93,6 +95,12 @@ body, #root {
     margin-bottom: 8px;
 }
 
+.input-group {
+  display: flex;
+  flex-direction: column;
+  padding-right: 2rem;
+}
+
 .input-field {
     width: 100%;
     padding: 12px 16px;
@@ -100,6 +108,7 @@ body, #root {
     border-radius: 8px; /* rounded-lg */
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
     transition: border-color 0.15s, box-shadow 0.15s;
+    /* background-color: black; */
 }
 
 .input-field:focus {
@@ -185,6 +194,14 @@ body, #root {
   margin-bottom: 1rem;
 }
 
+.details-header-wrapper > * {
+  margin-bottom: 1rem;
+}
+
+.details-header-wrapper > *:last-child {
+  margin-bottom: 0;
+}
+
 .details-title {
   font-size: 1.875rem; /* text-3xl */
   font-weight: 800; /* font-extrabold */
@@ -210,6 +227,26 @@ body, #root {
 .button-icon-large {
   font-size: 1.25rem; /* text-xl */
   margin-right: 0.5rem;
+}
+
+/* Confirm Add Button Style */
+.confirm-add-button {
+  padding: 0.5rem 1rem;
+  background-color: #10b981; /* bg-emerald-500: A clear primary action color */
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.5); /* Shadow based on the emerald color */
+  transition: background-color 0.15s;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem; /* text-sm */
+}
+
+.confirm-add-button:hover {
+  background-color: #059669; /* hover:bg-emerald-600 */
 }
 
 /* General Info Card Styles */
@@ -311,28 +348,43 @@ body, #root {
 }
 
 .interface-list-wrapper {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 0.5rem;
   font-size: 0.875rem; /* text-sm */
-  max-height: 12rem;
-  overflow-y: auto;
   padding: 0.5rem;
   border: 1px dashed #d1d5db; /* border-gray-300 */
   border-radius: 0.5rem;
 }
 
-.interface-tag {
-  background-color: #d1fae5; /* bg-teal-100 */
-  color: #065f46; /* text-teal-800 */
+.interface-tag-base {
   padding: 0.25rem 0.75rem;
   border-radius: 9999px; /* rounded-full */
   text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: nowrap; /* Prevents text from wrapping within the tag */
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   transition: background-color 0.1s;
+  cursor: default;
+  display: inline-block; /* Allows the element to shrink-wrap its content */
+}
+
+/* Subclass for 'Up' status (Green) */
+.interface-tag-up {
+  background-color: #d1fae5; /* bg-teal-100 */
+  color: #065f46; /* text-teal-800 */
+}
+.interface-tag-up:hover {
+  background-color: #a7f3d0; /* Slightly darker green on hover */
+}
+
+/* Subclass for 'Down' status (Red) */
+.interface-tag-down {
+  background-color: #fee2e2; /* bg-red-100 */
+  color: #991b1b; /* text-red-800 */
+}
+.interface-tag-down:hover {
+  background-color: #fecaca; /* Slightly darker red on hover */
 }
 
 .info-placeholder-text {

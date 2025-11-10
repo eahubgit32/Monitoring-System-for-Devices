@@ -218,6 +218,9 @@ const DiscoverDevice = () => {
           >
             <span className="button-icon-large">←</span> New Search
           </button>
+          <button className="confirm-add-button">
+            <span className="button-icon-large">➕</span> Confirm Add Device
+          </button>
         </div>
         
         {/* General Info Card */}
@@ -250,25 +253,24 @@ const DiscoverDevice = () => {
 
         {/* Interfaces Section */}
         <div className="interfaces-card-container">
-            <h2 className="interfaces-card-title">Enabled Interfaces ({interfaces ? interfaces.names.length : 0})</h2>
-
-            {interfaces && interfaces.names.length > 0 ? (
-                <div className="interface-list-wrapper">
-                    {interfaces.names.map((name, index) => (interfaces.oper_status[index].startsWith('up') ? (
-                        <span key={index}
-                        className="interface-tag"
-                        onMouseOver={e => e.currentTarget.style.backgroundColor = '#a7f3d0'}
-                        onMouseOut={e => e.currentTarget.style.backgroundColor = '#d1fae5'}
-                        >
-                            {name}
-                        </span>
-                    ) : (null)))}
-                </div>
-            ) : (
-                <p className="info-placeholder-text">No enabled interfaces.</p>
-            )}
+          <h2 className="interfaces-card-title">
+            Enabled Interfaces ({interfaces ? interfaces.names.length : 0})
+            Active ({interfaces ? interfaces.oper_status.filter(status => status.startsWith('up')).length : 0})
+          </h2>
+          {interfaces && interfaces.names.length > 0 ? (
+            <div className="interface-list-wrapper">
+              {interfaces.names.map((name, index) => (interfaces.admin_status[index].startsWith('up') ? (
+                <span key={index}
+                className={`interface-tag-base ${interfaces.oper_status[index].startsWith('up') ? 'interface-tag-up' : 'interface-tag-down'}`}
+                >
+                  {name}
+                </span>
+              ) : (null)))}
+            </div>
+          ) : (
+            <p className="info-placeholder-text">No enabled interfaces.</p>
+          )}
         </div>
-        
       </div>
     );
   };
