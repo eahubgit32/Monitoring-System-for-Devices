@@ -12,6 +12,7 @@ Features:
 """
 
 from django.contrib import admin
+from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User, Group
 from django.urls import reverse
 from django.utils.html import format_html
@@ -139,13 +140,11 @@ class BrandAdmin(BaseIconAdmin):
     list_display = ('brand_name', 'action_buttons')
     search_fields = ('brand_name',)
     
-    def save_model(self, request, obj, form, change):
-        """Prevent duplicate entries based on unique name"""
-        unique_field = getattr(obj, 'brand_name', None) or getattr(obj, 'model_name', None) or getattr(obj, 'type_name', None) or getattr(obj, 'metric_name', None)
-        if not change:  # only on creation
-            if self.model.objects.filter(**{self.model._meta.get_field(obj._meta.pk.name).name: unique_field}).exists():
-                from django.core.exceptions import ValidationError
-                raise ValidationError(f"A {self.model.__name__} with this name already exists.")
+def save_model(self, request, obj, form, change):
+        """Prevent creating duplicate Brand names."""
+        if not change:
+            if Brand.objects.filter(brand_name=obj.brand_name).exists():
+                raise ValidationError("A Brand with this name already exists.")
         super().save_model(request, obj, form, change)
 
 class DeviceTypeAdmin(BaseIconAdmin):
@@ -156,13 +155,11 @@ class DeviceTypeAdmin(BaseIconAdmin):
     search_fields = ('type_name',)
 
     def save_model(self, request, obj, form, change):
-        """Prevent duplicate entries based on unique name"""
-        unique_field = getattr(obj, 'brand_name', None) or getattr(obj, 'model_name', None) or getattr(obj, 'type_name', None) or getattr(obj, 'metric_name', None)
-        if not change:  # only on creation
-            if self.model.objects.filter(**{self.model._meta.get_field(obj._meta.pk.name).name: unique_field}).exists():
-                from django.core.exceptions import ValidationError
-                raise ValidationError(f"A {self.model.__name__} with this name already exists.")
-        super().save_model(request, obj, form, change)
+            """Prevent creating duplicate DeviceType names."""
+            if not change:
+                if DeviceType.objects.filter(type_name=obj.type_name).exists():
+                    raise ValidationError("A Device Type with this name already exists.")
+            super().save_model(request, obj, form, change)
 
 class MetricAdmin(BaseIconAdmin):
     """
@@ -172,13 +169,11 @@ class MetricAdmin(BaseIconAdmin):
     list_filter = ('unit',)
     search_fields = ('metric_name', 'unit')
 
-    def save_model(self, request, obj, form, change):
-        """Prevent duplicate entries based on unique name"""
-        unique_field = getattr(obj, 'brand_name', None) or getattr(obj, 'model_name', None) or getattr(obj, 'type_name', None) or getattr(obj, 'metric_name', None)
-        if not change:  # only on creation
-            if self.model.objects.filter(**{self.model._meta.get_field(obj._meta.pk.name).name: unique_field}).exists():
-                from django.core.exceptions import ValidationError
-                raise ValidationError(f"A {self.model.__name__} with this name already exists.")
+def save_model(self, request, obj, form, change):
+        """Prevent creating duplicate Metric names."""
+        if not change:
+            if Metric.objects.filter(metric_name=obj.metric_name).exists():
+                raise ValidationError("A Metric with this name already exists.")
         super().save_model(request, obj, form, change)
 
 custom_admin_site.register(Brand, BrandAdmin)
@@ -319,15 +314,12 @@ class DeviceModelAdmin(BaseIconAdmin):
     list_filter = ('brand', 'type')
     search_fields = ('model_name', 'brand', 'type')
     
-    def save_model(self, request, obj, form, change):
-        """Prevent duplicate entries based on unique name"""
-        unique_field = getattr(obj, 'brand_name', None) or getattr(obj, 'model_name', None) or getattr(obj, 'type_name', None) or getattr(obj, 'metric_name', None)
-        if not change:  # only on creation
-            if self.model.objects.filter(**{self.model._meta.get_field(obj._meta.pk.name).name: unique_field}).exists():
-                from django.core.exceptions import ValidationError
-                raise ValidationError(f"A {self.model.__name__} with this name already exists.")
+def save_model(self, request, obj, form, change):
+        """Prevent creating duplicate DeviceModel names."""
+        if not change:
+            if DeviceModel.objects.filter(model_name=obj.model_name).exists():
+                raise ValidationError("A Device Model with this name already exists.")
         super().save_model(request, obj, form, change)
-
 
 class InterfaceAdmin(BaseIconAdmin):
     """
