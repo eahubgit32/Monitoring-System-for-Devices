@@ -79,23 +79,35 @@ class Device(models.Model):
     # Optional reference to a user (e.g., who manages/added the device)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
 
-     # credentials
-    username = models.CharField(max_length=100, blank=True, null=True)
-    password_encrypted = models.BinaryField(blank=True, null=True)  # stores encrypted bytes (FernetKey)
-    
+     # credentials for SNMP access
+    username = models.CharField(max_length=100, default='')
+    snmp_password = models.BinaryField(default=b'')  # stores encrypted bytes (FernetKey)
+    snmp_aes_passwd = models.BinaryField(default=b'')  # stores encrypted bytes (FernetKey)
+
+    # Whether the device is actively monitored
+    # is_active = models.BooleanField(default=True)
+
     def __str__(self):
         return self.hostname
     
      # --- Encryption helpers ---
     def set_snmp_password(self, raw_password: str):
         """Encrypt and store password."""
-        self.password_encrypted = settings.FERNET.encrypt(raw_password.encode())
+        self.snmp_password = settings.FERNET.encrypt(raw_password.encode())
 
     def get_snmp_password(self):
         """Decrypt and return password."""
-        if self.password_encrypted:
-            return settings.FERNET.decrypt(self.password_encrypted).decode()
+        if self.snmp_password:
+            return settings.FERNET.decrypt(self.snmp_password).decode()
         return None
+    
+    def set_snmp_aes_passwd(self, raw_password: str):
+        """Encrypt and store password."""
+        self.snmp_aes_passwd = settings.FERNET.encrypt(raw_password.encode())
+
+    def get_snmp_aes_passwd(self):
+        if self.snmp_aes_passwd:
+            return settings.FERNET.decrypt(self.snmp_aes_passwd).decode()
 
 
 # ======================
@@ -164,10 +176,10 @@ class History(models.Model):
     value = models.CharField(max_length=255)
 
     # The timestamp when the data was collected
-    # timestamp = models.DateTimeField(auto_now_add=True)
+    timestamp = models.DateTimeField() 
 
     # Change timestamp to CharField since it's stored as a string
-    timestamp = models.CharField(max_length=255)
+    # timestamp = models.CharField(max_length=255)
 
     class Meta:
         # Rename the table in the admin to be more readable

@@ -19,6 +19,7 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from django import forms
+from django.utils import timezone
 from .models import (
     Brand, DeviceType, Metric, DeviceModel,
     Device, Interface, OidMap, History, Threshold
@@ -185,37 +186,60 @@ custom_admin_site.register(Metric, MetricAdmin)
 
 # --- Custom ModelForm for Device ---
 class DeviceAdminForm(forms.ModelForm):
-    # Plain text password field for input
-    password = forms.CharField(
+    username = forms.CharField(
+        required=True,  # enforce mandatory input
+        label="SNMP Username"
+    )
+    # Plain text fields for input
+    snmp_auth_password = forms.CharField(
         widget=forms.PasswordInput(render_value=True),
-        required=False,
-        label="SNMP Password"
+        required=True,  # enforce mandatory input
+        label="SNMP Auth Password"
+    )
+    snmp_priv_password = forms.CharField(
+        widget=forms.PasswordInput(render_value=True),
+        required=True,  # enforce mandatory input
+        label="SNMP AES Password"
     )
 
     class Meta:
         model = Device
-        fields = '__all__' # include all model fields
+        fields = '__all__'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Decide widget type depending on add or edit
+
+        # Handle form mode
         if self.instance and self.instance.pk:
-            # Editing existing device: show decrypted password temporarily
-            self.fields['password'].initial = self.instance.get_snmp_password()
-            self.fields['password'].widget = forms.PasswordInput(render_value=True)
+            # Editing existing device: show decrypted passwords
+            self.fields['snmp_auth_password'].initial = self.instance.get_snmp_password()
+            self.fields['snmp_priv_password'].initial = self.instance.get_snmp_aes_passwd()
+
+            # When editing, mask passwords
+            self.fields['snmp_auth_password'].widget = forms.PasswordInput(render_value=True)
+            self.fields['snmp_priv_password'].widget = forms.PasswordInput(render_value=True)
         else:
-            # Adding new device: show as normal text
-            self.fields['password'].widget = forms.TextInput()
+            # Adding new device: allow visible text for easier input
+            self.fields['snmp_auth_password'].widget = forms.TextInput()
+            self.fields['snmp_priv_password'].widget = forms.TextInput()
 
     def save(self, commit=True):
         instance = super().save(commit=False)
-        # Encrypt password if provided
-        pwd = self.cleaned_data.get('password')
-        if pwd:
-            instance.password_encrypted = settings.FERNET.encrypt(pwd.encode())
-        elif self.instance.pk and not pwd:
-            # Preserve existing encrypted password if left blank
-            instance.password_encrypted = self.instance.password_encrypted
+
+        # Encrypt both passwords if provided
+        auth_pwd = self.cleaned_data.get('snmp_auth_password')
+        priv_pwd = self.cleaned_data.get('snmp_priv_password')
+
+        if auth_pwd:
+            instance.snmp_password = settings.FERNET.encrypt(auth_pwd.encode())
+        elif self.instance.pk and not auth_pwd:
+            instance.snmp_password = self.instance.snmp_password  # keep existing
+
+        if priv_pwd:
+            instance.snmp_aes_passwd = settings.FERNET.encrypt(priv_pwd.encode())
+        elif self.instance.pk and not priv_pwd:
+            instance.snmp_aes_passwd = self.instance.snmp_aes_passwd  # keep existing
+
         if commit:
             instance.save()
         return instance
@@ -242,7 +266,8 @@ class DeviceAdmin(admin.ModelAdmin):
 
     form = DeviceAdminForm # use custom form with password handling
 
-    fields = ('hostname', 'ip_address', 'subnet_mask', 'model', 'user', 'username', 'password') 
+    fields = ('hostname', 'ip_address', 'subnet_mask', 'model', 'user', 'username', 'snmp_auth_password',
+        'snmp_priv_password') 
 
 
     def get_fields(self, request, obj=None):
@@ -281,7 +306,23 @@ class DeviceAdmin(admin.ModelAdmin):
                 raise ValidationError("A device with this hostname and IP already exists.")
         super().save_model(request, obj, form, change)
 
+    # Validate that passwords are provided
+    def clean(self):
+        cleaned_data = super().clean()
+        username = cleaned_data.get('username')
+        auth_pwd = cleaned_data.get('snmp_auth_password')
+        priv_pwd = cleaned_data.get('snmp_priv_password')
 
+        if not username:
+            raise forms.ValidationError("SNMP Username is required.")
+        if not auth_pwd:
+            raise forms.ValidationError("SNMP Auth Password is required.")
+        if not priv_pwd:
+            raise forms.ValidationError("SNMP AES Password is required.")
+
+        return cleaned_data
+
+    # Queryset filtering based on user
     def get_queryset(self, request):
         """Filter queryset for non-superusers to only show their devices."""
         qs = super().get_queryset(request)
@@ -289,6 +330,7 @@ class DeviceAdmin(admin.ModelAdmin):
             return qs
         return qs.filter(user=request.user)
 
+    # Permission overrides
     def has_change_permission(self, request, obj=None):
         """Allow editing only for owner or superuser."""
         if obj is None:
@@ -301,6 +343,7 @@ class DeviceAdmin(admin.ModelAdmin):
             return True
         return request.user.is_superuser or obj.user == request.user
 
+    # Action buttons column
     def action_buttons(self, obj):
         """Render Edit/Delete buttons for each device row."""
         change_url = reverse(
@@ -343,6 +386,20 @@ class HistoryAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+    def local_timestamp(self, obj):
+        # Converts UTC timestamp to your TIME_ZONE
+        return timezone.localtime(obj.timestamp).strftime("%Y-%m-%d %H:%M:%S")
+    
+    local_timestamp.admin_order_field = 'timestamp'  # allows sorting
+    local_timestamp.short_description = 'Timestamp'
+
+    def get_queryset(self, request):
+        """Filter history based on user: superuser sees all, normal users see only their devices."""
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        return qs.filter(device__user=request.user)  # only history of the user's devices
 
 
 custom_admin_site.register(History, HistoryAdmin)
