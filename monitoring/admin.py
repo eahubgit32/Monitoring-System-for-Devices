@@ -17,6 +17,8 @@ from django.contrib.auth.models import User, Group
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
+from django.conf import settings
+from django import forms
 from .models import (
     Brand, DeviceType, Metric, DeviceModel,
     Device, Interface, OidMap, History, Threshold
@@ -181,6 +183,44 @@ custom_admin_site.register(DeviceType, DeviceTypeAdmin)
 custom_admin_site.register(Metric, MetricAdmin)
 
 
+# --- Custom ModelForm for Device ---
+class DeviceAdminForm(forms.ModelForm):
+    # Plain text password field for input
+    password = forms.CharField(
+        widget=forms.PasswordInput(render_value=True),
+        required=False,
+        label="SNMP Password"
+    )
+
+    class Meta:
+        model = Device
+        fields = '__all__' # include all model fields
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Decide widget type depending on add or edit
+        if self.instance and self.instance.pk:
+            # Editing existing device: show decrypted password temporarily
+            self.fields['password'].initial = self.instance.get_snmp_password()
+            self.fields['password'].widget = forms.PasswordInput(render_value=True)
+        else:
+            # Adding new device: show as normal text
+            self.fields['password'].widget = forms.TextInput()
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        # Encrypt password if provided
+        pwd = self.cleaned_data.get('password')
+        if pwd:
+            instance.password_encrypted = settings.FERNET.encrypt(pwd.encode())
+        elif self.instance.pk and not pwd:
+            # Preserve existing encrypted password if left blank
+            instance.password_encrypted = self.instance.password_encrypted
+        if commit:
+            instance.save()
+        return instance
+
+
 # ----------------------------------------------------
 # DeviceAdmin with per-user permissions
 # ----------------------------------------------------
@@ -199,6 +239,11 @@ class DeviceAdmin(admin.ModelAdmin):
     list_filter = ('model', 'user')
     search_fields = ('hostname', 'ip_address')
     actions = None  # remove "delete selected"
+
+    form = DeviceAdminForm # use custom form with password handling
+
+    fields = ('hostname', 'ip_address', 'subnet_mask', 'model', 'user', 'username', 'password') 
+
 
     def get_fields(self, request, obj=None):
         """

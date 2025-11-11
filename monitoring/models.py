@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
+from cryptography.fernet import Fernet
+from django.conf import settings
 
 # Uses Django's built-in User model to represent system users
 # (e.g., admins, operators, or whoever owns/manages a device).
@@ -77,8 +79,23 @@ class Device(models.Model):
     # Optional reference to a user (e.g., who manages/added the device)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
 
+     # credentials
+    username = models.CharField(max_length=100, blank=True, null=True)
+    password_encrypted = models.BinaryField(blank=True, null=True)  # stores encrypted bytes (FernetKey)
+    
     def __str__(self):
         return self.hostname
+    
+     # --- Encryption helpers ---
+    def set_snmp_password(self, raw_password: str):
+        """Encrypt and store password."""
+        self.password_encrypted = settings.FERNET.encrypt(raw_password.encode())
+
+    def get_snmp_password(self):
+        """Decrypt and return password."""
+        if self.password_encrypted:
+            return settings.FERNET.decrypt(self.password_encrypted).decode()
+        return None
 
 
 # ======================
@@ -147,7 +164,10 @@ class History(models.Model):
     value = models.CharField(max_length=255)
 
     # The timestamp when the data was collected
-    timestamp = models.DateTimeField(auto_now_add=True)
+    # timestamp = models.DateTimeField(auto_now_add=True)
+
+    # Change timestamp to CharField since it's stored as a string
+    timestamp = models.CharField(max_length=255)
 
     class Meta:
         # Rename the table in the admin to be more readable
