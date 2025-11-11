@@ -24,3 +24,10 @@ python manage.py runserver
 cd path/to/your/react-project
 npm run build
 ```
+
+# How to push all changes made to Git Repo
+```bash
+git add .
+git commit -m "COMMIT_MESSAGE"
+GIT_SSL_NO_VERIFY=true git push -u origin <YOUR_BRANCH>
+```
