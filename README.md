@@ -1,5 +1,11 @@
 # How to run this project:
 
+0. If no virtual environment is created, create one first
+```bash
+cd path/to/your/project
+python -m venv <VENV_NAME>
+```
+Note: In the following case, the venv is named "venv"  
 1. Activate the virtual environment
 ```bash
 source venv/bin/activate
@@ -15,5 +21,6 @@ python manage.py runserver
 
 # How to build React Frontend
 ```js
+cd path/to/your/react-project
 npm run build
 ```

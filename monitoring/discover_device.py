@@ -134,6 +134,7 @@ def discover_device(snmp_user, auth_pass, priv_pass, ip_address):
         "memory_used": "1.3.6.1.4.1.9.9.48.1.1.1.5",   # Used memory in Bytes
     }
     available_interfaces = "1.3.6.1.2.1.2.2.1.2"       # List of interface names
+    if_index_oid = "1.3.6.1.2.1.2.2.1.1"               # Interface index
     if_admin_oid = "1.3.6.1.2.1.2.2.1.7"     # Admin status of interfaces
     if_oper_oid = "1.3.6.1.2.1.2.2.1.8"      # Operational status of interfaces
 
@@ -143,15 +144,15 @@ def discover_device(snmp_user, auth_pass, priv_pass, ip_address):
     if "Error" in model_id_value:
         return {
             "status": "error",
-            "message": "SNMP Error during Model ID retrieval.",
-            "details": model_id_value  # Pass the specific error message here
+            "details": "SNMP Error during Model ID retrieval.",
+            "message": model_id_value  # Pass the specific error message here
         }
     hostname_value, _ = run_snmp("snmpget", snmp_user, auth_pass, priv_pass, ip_address, sys_name)
     if "Error" in hostname_value:
         return {
             "status": "error",
-            "message": "SNMP Error during Hostname retrieval.",
-            "details": hostname_value  # Pass the specific error message here
+            "details": "SNMP Error during Hostname retrieval.",
+            "message": hostname_value  # Pass the specific error message here
         }
     hostname_value = hostname_value.split(".")[0]  # Get only the first part of the hostname
     
@@ -170,11 +171,13 @@ def discover_device(snmp_user, auth_pass, priv_pass, ip_address):
 
     # 2.4 SNMP Polling for Available Interfaces
     print("Gathering Available Interfaces...")
-    interface_list, _ = run_snmp("snmpwalk", snmp_user, auth_pass, priv_pass, ip_address, available_interfaces)
+    interface_indexes, _ = run_snmp("snmpwalk", snmp_user, auth_pass, priv_pass, ip_address, if_index_oid)
+    interface_names, _ = run_snmp("snmpwalk", snmp_user, auth_pass, priv_pass, ip_address, available_interfaces)
     interface_admin_status, _ = run_snmp("snmpwalk", snmp_user, auth_pass, priv_pass, ip_address, if_admin_oid)
     interface_oper_status, _ = run_snmp("snmpwalk", snmp_user, auth_pass, priv_pass, ip_address, if_oper_oid)
 
     # 3. Return Discovery Results
+    print("Discovery completed successfully.")
     return {
         "status": "OK",
         "data": {
@@ -183,7 +186,8 @@ def discover_device(snmp_user, auth_pass, priv_pass, ip_address):
             "hostname": hostname_value,
             "applicable_measurements": applicable_measurements,
             "interfaces": {
-                "names": interface_list,
+                "indexes": interface_indexes,
+                "names": interface_names,
                 "admin_status": interface_admin_status,
                 "oper_status": interface_oper_status
             }

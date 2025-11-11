@@ -20,7 +20,7 @@ from django.views.generic import TemplateView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/v1/', include('monitoring.urls')),
+    path('api/', include('monitoring.urls')),
 
     # Catch-all pattern to serve the React frontend
     re_path(r'^.*', TemplateView.as_view(template_name='index.html')),

@@ -12,6 +12,7 @@ def device_discovery_api(request):
     Receives SNMPv3 credentials and IP, executes the Python discovery script, 
     and returns the JSON result.
     """
+    print("Received device discovery request.")
     # 1. Check the request type
     if request.content_type != 'application/json':
         return JsonResponse(
