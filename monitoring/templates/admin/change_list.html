@@ -1,0 +1,71 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+
+{% block extrahead %}
+{{ block.super }}
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+      // 1. Find the destination (the search bar container)
+      const searchContainer = document.getElementById('changelist-search');
+      
+      // 2. Find the button to move (the "Add" link from the top-right tools)
+      const addButton = document.querySelector('.object-tools .addlink'); 
+
+      if (searchContainer && addButton) {
+          // 3. Move the button into the search container
+          searchContainer.appendChild(addButton);
+      }
+  });
+</script>
+{% endblock %}
+
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+  /* 1. Hide the original button's container (top right) */
+  .object-tools {
+     display: none !important;
+  }
+
+  /* 2. Style the search container to hold the button */
+  #changelist-search {
+      display: flex; /* Use flexbox for horizontal alignment */
+      align-items: center; /* Vertically center items */
+      justify-content: space-between; /* Push search form left, button right */
+      gap: 10px; /* Space between items */
+      
+      /* Make sure it looks good */
+      width: 100%;
+      padding: 8px 10px;
+      box-sizing: border-box; /* Important for padding */
+  }
+
+  /* 3. Style the search form itself (to share space) */
+  #changelist-search form {
+      flex-grow: 1; /* Allow the form to take up available space */
+      display: flex;
+      align-items: center;
+      margin: 0; /* Remove default form margin */
+  }
+  
+  #changelist-search input[type="text"] {
+      width: 280px; /* Set your desired search bar width */
+      margin-right: 5px;
+  }
+
+  /* 4. Style the button in its new home */
+  #changelist-search .addlink {
+      flex-shrink: 0; /* Prevent the button from shrinking */
+      
+      /* Apply your custom button styles */
+      background-color: #467495;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 4px;
+      text-decoration: none;
+      white-space: nowrap; /* Keep "ADD DEVICE" on one line */
+      line-height: 1.5; /* Helps with vertical text alignment */
+  }
+</style>
+{% endblock %}

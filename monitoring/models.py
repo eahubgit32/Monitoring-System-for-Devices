@@ -157,6 +157,9 @@ class OidMap(models.Model):
     def __str__(self):
         # Example: "Cisco 2960 / CPU Usage"
         return f"{self.model.model_name} / {self.metric.metric_name}"
+    
+    class Meta:
+        unique_together = ('model', 'metric')  # prevents duplicates
 
 
 # ======================
@@ -173,7 +176,7 @@ class History(models.Model):
     interface = models.ForeignKey(Interface, on_delete=models.CASCADE, null=True, blank=True)
 
     # The recorded value (e.g., 60%)
-    value = models.CharField(max_length=255)
+    value = models.TextField()
 
     # The timestamp when the data was collected
     timestamp = models.DateTimeField() 

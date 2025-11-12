@@ -63,7 +63,7 @@ ROOT_URLCONF = 'network_monitor.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [REACT_BUILD_DIR],
+        'DIRS': [REACT_BUILD_DIR, BASE_DIR / "monitoring/templates"],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
