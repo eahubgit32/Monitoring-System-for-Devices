@@ -208,28 +208,28 @@ if len(sys.argv) > 1:
         # PRINT AND INSERT INTO DATABASE (SYSTEM DESC)
       #  print("---------------------------------------------------------------------------")
         print(DEV_OWNER + " - CPU Usage:       " + str(CALLER.dat[0]["CPU"]))
-        CALLER.db_connect.INSERT_NOW(CALLER.dat[0]["CPU"], "CPU")
+        CALLER.db_connect.INSERT_NOW(CALLER.dat[0]["CPU"], "CPU", 9999)
 
         print(DEV_OWNER + " - Uses Memory:     " + str(CALLER.dat[0]["USED_MEM"]))
-        CALLER.db_connect.INSERT_NOW(CALLER.dat[0]["USED_MEM"], "USED_MEM")
+        CALLER.db_connect.INSERT_NOW(CALLER.dat[0]["USED_MEM"], "USED_MEM", 9999)
         
         print(DEV_OWNER + " - Free Memory:     " + str(CALLER.dat[0]["FREE_MEM"]))
-        CALLER.db_connect.INSERT_NOW(CALLER.dat[0]["FREE_MEM"], "FREE_MEM")
+        CALLER.db_connect.INSERT_NOW(CALLER.dat[0]["FREE_MEM"], "FREE_MEM", 9999)
         
         print(DEV_OWNER + " - IP Address:      " + str(CALLER.dat[0]["IP_ADD"]))
-        CALLER.db_connect.INSERT_NOW(CALLER.dat[0]["IP_ADD"], "IP_ADD")
+        CALLER.db_connect.INSERT_NOW(CALLER.dat[0]["IP_ADD"], "IP_ADD", 9999)
         
         print(DEV_OWNER + " - Subnet Mask:     " + str(CALLER.dat[0]["MASK"]))
-        CALLER.db_connect.INSERT_NOW(CALLER.dat[0]["MASK"], "SMASK")
+        CALLER.db_connect.INSERT_NOW(CALLER.dat[0]["MASK"], "SMASK", 9999)
         
         print(DEV_OWNER + " - Hostname:        " + str(CALLER.dat[0]["HOST"]))
-        CALLER.db_connect.INSERT_NOW(CALLER.dat[0]["HOST"], "HOSTNAME")
+        CALLER.db_connect.INSERT_NOW(CALLER.dat[0]["HOST"], "HOSTNAME", 9999)
         
         print(DEV_OWNER + " - Total Interface: " + str(CALLER.dat[0]["TOTAL_PORT"]))
-        CALLER.db_connect.INSERT_NOW(str(CALLER.dat[0]["TOTAL_PORT"]), "TOTAL_PORT")
+        CALLER.db_connect.INSERT_NOW(str(CALLER.dat[0]["TOTAL_PORT"]), "TOTAL_PORT", 9999)
         
         print(DEV_OWNER + " - Description:     " + str(CALLER.dat[0]["DESC"]))
-        CALLER.db_connect.INSERT_NOW(CALLER.dat[0]["DESC"], "DESC")
+        CALLER.db_connect.INSERT_NOW(CALLER.dat[0]["DESC"], "DESC", 9999)
         
      #   print("---------------------------------------------------------------------------")
         
@@ -243,15 +243,15 @@ if len(sys.argv) > 1:
                 interface_OPER      = CALLER.dat[1]["INT_OPER"][x]
                 interface_BW_IN     = CALLER.dat[1]["INT_BW_IN"][x]
                 interface_BW_OUT    = CALLER.dat[1]["INT_BW_OUT"][x]
-                CALLER.db_connect.INSERT_NOW(interface_name, "PORT_N")
-                CALLER.db_connect.INSERT_NOW(interface_type, "PORT_T")
-                CALLER.db_connect.INSERT_NOW(interface_admin, "ADMIN")
-                CALLER.db_connect.INSERT_NOW(interface_OPER, "OPER")
-                CALLER.db_connect.INSERT_NOW(interface_BW_IN, "BW_IN")
-                CALLER.db_connect.INSERT_NOW(interface_BW_OUT, "BW_OUT")
+                CALLER.db_connect.INSERT_NOW(interface_type, "PORT_T", x)
+                CALLER.db_connect.INSERT_NOW(interface_admin, "ADMIN", x)
+                CALLER.db_connect.INSERT_NOW(interface_OPER, "OPER", x)
+                CALLER.db_connect.INSERT_NOW(interface_name, "PORT_N", x)
+                CALLER.db_connect.INSERT_NOW(interface_BW_IN, "BW_IN", x)
+                CALLER.db_connect.INSERT_NOW(interface_BW_OUT, "BW_OUT", x)
+                
 
-
-                print(DEV_OWNER + " - " + interface_name, interface_type, interface_admin, interface_OPER, interface_BW_IN, interface_BW_OUT)
+                #print(DEV_OWNER + " - " + interface_name, interface_type, interface_admin, interface_OPER, interface_BW_IN, interface_BW_OUT, " -- PORT : " + str(x))
          #   print("---------------------------------------------------------------------------")
 else:
     #/usr/bin/python /var/scripts/indexv3.py 'IP ADDRESS' 'USERNAME' 'PASSWORD' 'AES PASSWORD' 'MODE (0 = BASIC | 1 = COMPLETE)'

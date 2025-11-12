@@ -68,7 +68,7 @@ class OIDS:
 
 
     # THIS FUNCTION IS RESPONSIBLE FOR INSERTING DATA INSIDE THE DATABASE HISTORY
-    def INSERT_NOW(self, VAL, OID_TYPE, INT_TYPE="NULL"):
+    def INSERT_NOW(self, VAL, OID_TYPE, IDENTIFIER,INT_TYPE="NULL"):
       #  try:
             with self.conn.cursor() as cursor:
                 #METRIC ID
@@ -91,16 +91,30 @@ class OIDS:
                 }
 
                 #print(VAL, OID_TYPE_TABLE[str(OID_TYPE)])
-                sql = "SELECT model_id FROM snmp_monitoring.monitoring_device WHERE ip_address= '" + str(self.ip) + "';"
-                cursor.execute(sql)
-                self.INSERTER_MODEL_ID = cursor.fetchone()["model_id"]
-                sql = "SELECT id FROM snmp_monitoring.monitoring_device WHERE model_id="+str(self.INSERTER_MODEL_ID)+";"
-                cursor.execute(sql)
-                self.INSERTER_DEVICE_ID = cursor.fetchone()["id"]
-                
-                sql = "INSERT INTO snmp_monitoring.monitoring_history (value, `timestamp`, device_id, interface_id, metric_id) VALUES('" + str(VAL) + "', '" + str(self.TIMEDATE) + "', "+ str(self.INSERTER_DEVICE_ID) + ", "+str(INT_TYPE)+", "+ str(OID_TYPE_TABLE[OID_TYPE]) +");"
-                stat = cursor.execute(sql)
-                self.conn.commit()
+                try:
+                    sql = "SELECT model_id FROM snmp_monitoring.monitoring_device WHERE ip_address= '" + str(self.ip) + "';"
+                    cursor.execute(sql)
+                    self.INSERTER_MODEL_ID = cursor.fetchone()["model_id"]
+                    sql = "SELECT id FROM snmp_monitoring.monitoring_device WHERE model_id="+str(self.INSERTER_MODEL_ID)+";"
+                    cursor.execute(sql)
+                    self.INSERTER_DEVICE_ID = cursor.fetchone()["id"]
+                    
+                    if IDENTIFIER != 9999:
+                        sql = "SELECT id FROM snmp_monitoring.monitoring_interface WHERE device_id="+str(self.INSERTER_DEVICE_ID)+";"
+                        cursor.execute(sql)
+                        self.PORT_IDENTITY = cursor.fetchall()[IDENTIFIER]["id"]
+                        
+                        #print(self.PORT_IDENTITY)
+                        
+                        print(IDENTIFIER,"INTEFACE ID : " + str(self.PORT_IDENTITY) + " LOADED ...")
+                    else:
+                        self.PORT_IDENTITY = "NULL"
+                    
+                    sql = "INSERT INTO snmp_monitoring.monitoring_history (value, `timestamp`, device_id, interface_id, metric_id) VALUES('" + str(VAL) + "', '" + str(self.TIMEDATE) + "', "+ str(self.INSERTER_DEVICE_ID) + ", "+str(self.PORT_IDENTITY)+", "+ str(OID_TYPE_TABLE[OID_TYPE]) +");"
+                    stat = cursor.execute(sql)
+                    self.conn.commit()
+                except:
+                     print(" ERROR: Lack of information in Database Table")
                 #print(stat)
 
        # finally:
