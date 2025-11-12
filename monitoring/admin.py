@@ -68,7 +68,7 @@ class MonitoringAdminSite(admin.AdminSite):
     - Groups models in the sidebar (Monitoring, Device Blueprints, Polling, Authentication)
     - Provides a custom header, title, and index title
     """
-    site_header = "Django Administration"
+    site_header = "Network Device Monitoring System"
     site_title = "Monitoring Admin"
     index_title = "Network Monitoring Control Panel"
 
