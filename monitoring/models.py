@@ -157,6 +157,9 @@ class OidMap(models.Model):
     def __str__(self):
         # Example: "Cisco 2960 / CPU Usage"
         return f"{self.model.model_name} / {self.metric.metric_name}"
+    
+    class Meta:
+        unique_together = ('model', 'metric')  # prevents duplicates
 
 
 # ======================
