@@ -173,7 +173,7 @@ class History(models.Model):
     interface = models.ForeignKey(Interface, on_delete=models.CASCADE, null=True, blank=True)
 
     # The recorded value (e.g., 60%)
-    value = models.CharField(max_length=255)
+    value = models.TextField()
 
     # The timestamp when the data was collected
     timestamp = models.DateTimeField() 
