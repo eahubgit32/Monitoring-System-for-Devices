@@ -10,6 +10,7 @@ class DeviceRegistrationSerializer(serializers.Serializer):
     ip_address = serializers.IPAddressField(required=True)
     hostname = serializers.CharField(max_length=100, required=True)
     model_id = serializers.IntegerField(required=True, help_text="The ID of the DeviceModel selected by the user.")
+    # snmpv3_credentials = serializers.JSONField(required=True, help_text="SNMPv3 credentials including snmp_user, auth_pass, and priv_pass.")
 
     # Raw data output from the device discovery (used to extract interfaces)
     raw_discovery_data = serializers.JSONField(required=True)

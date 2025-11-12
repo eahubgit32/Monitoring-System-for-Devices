@@ -52,7 +52,16 @@ def confirm_add_device(request):
     ip_address = validated_data['ip_address']
     hostname = validated_data['hostname']
     model_id = validated_data['model_id']
+    # snmpv3_credentials = validated_data['snmpv3_credentials']
     raw_data = validated_data['raw_discovery_data']
+
+    # --- EXTRACT SNMP CREDENTIALS ---
+    # snmp_user = snmpv3_credentials.get('snmp_user', '')
+    # auth_pass = snmpv3_credentials.get('auth_pass', '')
+    # priv_pass = snmpv3_credentials.get('priv_pass', '')
+    snmp_user = raw_data['data']['snmpv3_credentials'].get('snmp_user', '')
+    auth_pass = raw_data['data']['snmpv3_credentials'].get('auth_pass', '')
+    priv_pass = raw_data['data']['snmpv3_credentials'].get('priv_pass', '')
     
     # --- EXTRACT INTERFACE DATA ---
     # Extract the three lists: indexes, names, and statuses (assuming they are all the same length)
@@ -90,8 +99,17 @@ def confirm_add_device(request):
                 ip_address=ip_address,
                 model=device_model,
                 # Assuming the user is authenticated via DRF authentication settings
-                user=request.user if request.user.is_authenticated else None
+                user=request.user if request.user.is_authenticated else None,
+                # user='admin',  # Placeholder; replace with actual user handling
+                username=snmp_user
             )
+
+            # Set and encrypt SNMP passwords
+            if auth_pass:
+                new_device.set_snmp_password(auth_pass)
+            if priv_pass:
+                new_device.set_snmp_aes_passwd(priv_pass)
+            new_device.save()
 
             # 2.2 Prepare Interface objects for bulk creation
             interface_objects = []

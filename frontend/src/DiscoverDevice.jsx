@@ -112,6 +112,7 @@ const DiscoverDevice = () => {
 
     // Set a confirmation message and clear the sensitive password fields
     const { ipAddress } = formData;
+    console.log(`Device Search Initiated for IP: ${ipAddress}.`);
     setConfirmationMessage(`🔍 Device Search Initiated for IP: ${ipAddress}.`);
     // console.log('Search Data:', formData);
     setFormData(prevData => ({
@@ -122,6 +123,7 @@ const DiscoverDevice = () => {
     }));
 
     // Send POST request to the backend API
+    console.log("Sending discovery request to backend...");
     const response = await fetch('/api/discover/', {
         method: 'POST',
         headers: {
@@ -130,6 +132,7 @@ const DiscoverDevice = () => {
         body: JSON.stringify(formData), 
       });
     const result = await response.json();
+    console.log("Response received");
     if (!response.ok || result.status === 'error') {
       // Failure path
       setConfirmationMessage(`❗ Discovery Failed: ${result.message || "Unknown error."}`);
@@ -171,6 +174,7 @@ const DiscoverDevice = () => {
       ip_address: deviceDetails.ip_address,
       hostname: deviceDetails.hostname,
       model_id: parseInt(selectedModelId, 10),
+      // snmpv3_credentials: deviceDetails.snmpv3_credentials,
       raw_discovery_data: {
         data: deviceDetails
       }

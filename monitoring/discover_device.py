@@ -75,7 +75,7 @@ def run_snmp(snmp_command, snmp_user, auth_pass, priv_pass, ip_address, oid):
     ]
 
     try:
-        result = subprocess.run(command, capture_output=True, text=True, timeout=15)
+        result = subprocess.run(command, capture_output=True, text=True, timeout=60)
         if result.returncode != 0:
             # Return detailed error for debugging
             return f"SNMP Error: {result.stderr.strip()}", None
@@ -190,6 +190,11 @@ def discover_device(snmp_user, auth_pass, priv_pass, ip_address):
                 "names": interface_names,
                 "admin_status": interface_admin_status,
                 "oper_status": interface_oper_status
+            },
+            "snmpv3_credentials": {
+                "snmp_user": snmp_user,
+                "auth_pass": auth_pass,
+                "priv_pass": priv_pass
             }
         }
     }
