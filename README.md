@@ -31,3 +31,10 @@ git add .
 git commit -m "COMMIT_MESSAGE"
 GIT_SSL_NO_VERIFY=true git push -u origin <YOUR_BRANCH>
 ```
+
+# Other requirements to be manually added
+1. Add the following entry to your .env file, since this file is not being tracked by GIT
+```bash
+# Fernet Key
+FERNET_KEY=dzi31zMj3HqfNuHYW2a8rU8g66Ahtzno-Lc6BZweTpg=
+```
