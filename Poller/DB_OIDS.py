@@ -90,7 +90,7 @@ class OIDS:
                     "TOTAL_PORT": 5
                 }
 
-                #print(VAL, OID_TYPE_TABLE[str(OID_TYPE)])
+                # TRY 
                 try:
                     sql = "SELECT model_id FROM snmp_monitoring.monitoring_device WHERE ip_address= '" + str(self.ip) + "';"
                     cursor.execute(sql)
@@ -114,6 +114,9 @@ class OIDS:
                     stat = cursor.execute(sql)
                     self.conn.commit()
                 except:
+                     # IF THERE ARE SOME ERRORS OR LACK OF INFROMATION IN DATABASE
+                     # IT WONT INSERT SOME DATA IN DATABASE
+
                      print(" ERROR: Lack of information in Database Table")
                 #print(stat)
 
