@@ -137,6 +137,19 @@
   color: #f0f0f0;
 }
 
+.login-logo {
+  width: 100%; /* Make the logo responsive to the card */
+  max-width: 200px; /* Set a max size so it's not huge */
+  height: auto; /* Maintain aspect ratio */
+  display: block; /* Allows margin auto to work */
+  margin: 0 auto 1rem auto; /* Centers the logo and adds space below it */
+}
+
+/* This is your existing rule, for context */
+.login-form.dark-mode h2 {
+  color: #f0f0f0;
+}
+
 /* Form Groups and Labels */
 .form-group.dark-mode label {
   color: #ccc;
