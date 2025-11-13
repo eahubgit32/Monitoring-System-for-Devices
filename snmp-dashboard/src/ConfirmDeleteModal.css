@@ -1,0 +1,76 @@
+/* The dark background overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  font-family: Arial, sans-serif;
+}
+
+/* The white content box */
+.modal-content {
+  background: #333; /* Darker background */
+  color: #eee;
+  padding: 20px 30px;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 400px;
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  color: #fff;
+}
+
+/* Container for the buttons */
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Base style for all buttons */
+.modal-button {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+/* "Hide" button */
+.button-soft-delete {
+  background-color: #007bff; /* Blue */
+  color: white;
+}
+.button-soft-delete:hover {
+  background-color: #0056b3;
+}
+
+/* "Delete Permanently" button */
+.button-hard-delete {
+  background-color: #dc3545; /* Red */
+  color: white;
+}
+.button-hard-delete:hover {
+  background-color: #c82333;
+}
+
+/* "Cancel" button */
+.button-cancel {
+  background-color: #6c757d; /* Gray */
+  color: white;
+}
+.button-cancel:hover {
+  background-color: #5a6268;
+}

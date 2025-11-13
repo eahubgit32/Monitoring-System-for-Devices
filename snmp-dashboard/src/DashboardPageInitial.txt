@@ -1,0 +1,327 @@
+// src/DashboardPage.jsx - FINAL VERSION WITH ALL FEATURES
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import DeviceTable from './DeviceTable.jsx';
+import { deviceService } from './api/deviceService.js'; 
+import './DashboardPage.css';
+import { useUser } from './UserContext.jsx';
+import ConfirmDeleteModal from './ConfirmDeleteModal.jsx'; // Make sure this component exists
+
+function DashboardPage() {
+  const [fetchedDevices, setFetchedDevices] = useState([]); 
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  // --- STATE FOR PERSISTENCE FEATURE ---
+  const [selectedDeviceIds, setSelectedDeviceIds] = useState([]);
+  const [pendingSelectedIds, setPendingSelectedIds] = useState([]);
+  const [isPersistentFilterOn, setIsPersistentFilterOn] = useState(false); 
+  const [isPreferenceLoading, setIsPreferenceLoading] = useState(true); 
+  
+  const [isLoading, setIsLoading] = useState(true); 
+  const [error, setError] = useState(null);
+
+  // --- STATE FOR MODAL ---
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deviceToDeleteId, setDeviceToDeleteId] = useState(null);
+  
+  // --- STATE FOR "SHOW HIDDEN" ---
+  const [showHidden, setShowHidden] = useState(false);
+
+  const { user } = useUser();
+  const role = user?.role;
+  const userId = user?.id;
+  const isAdmin = role === 'admin';
+
+  const dashboardTitle = role === 'admin' 
+    ? "Network Device Dashboard (Admin View)" 
+    : "My Devices (User View)";
+
+  // --- DATA FETCHING ---
+  useEffect(() => {
+    if (!userId) return; 
+
+    const fetchDevices = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        // Pass the 'showHidden' state to the API call
+        const data = await deviceService.getAllDevices(showHidden);
+        
+        const devicesArray = Array.isArray(data.devices) ? data.devices : [];
+        setFetchedDevices(devicesArray);
+        
+      } catch (e) {
+        setError(e.message);
+        setFetchedDevices([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDevices();
+  }, [userId, showHidden]); // Re-fetches when 'showHidden' changes
+
+  // --- PERSISTENCE LOADER ---
+  useEffect(() => {
+    if (!userId || fetchedDevices.length === 0) return;
+
+    const loadPreferences = async () => {
+      try {
+        setIsPreferenceLoading(true);
+        const data = await deviceService.loadFilterPreferences(); 
+        const ids = data.selected_device_ids
+            ? data.selected_device_ids.split(',').map(id => parseInt(id.trim()))
+            : [];
+        const validIds = ids.filter(id => fetchedDevices.some(d => d.id === id));
+        
+        setSelectedDeviceIds(validIds);
+        setPendingSelectedIds(validIds); 
+        setIsPersistentFilterOn(data.is_filter_active);
+      } catch (e) {
+        setSelectedDeviceIds([]);
+        setPendingSelectedIds([]);
+        setIsPersistentFilterOn(false);
+      } finally {
+        setIsPreferenceLoading(false);
+      }
+    };
+    loadPreferences();
+  }, [userId, fetchedDevices.length]); 
+
+  
+  // --- HANDLERS ---
+  const handleToggleFilter = (e) => {
+    setIsPersistentFilterOn(e.target.checked);
+  };
+
+  //const handleUnhide = async (deviceId) => {
+   // if (!deviceId) return;
+
+    //try {
+      //await deviceService.unhideDevice(deviceId); // Call the API
+      
+      // Refetch the entire list to update the UI
+      //const data = await deviceService.getAllDevices(showHidden);
+      //setFetchedDevices(Array.isArray(data.devices) ? data.devices : []);
+
+    //} catch (e) {
+     // setError(e.message);
+    //}
+  //};
+  
+  const handleDeviceSelection = (deviceId) => {
+    setPendingSelectedIds(prevIds => 
+      prevIds.includes(deviceId)
+        ? prevIds.filter(id => id !== deviceId)
+        : [...prevIds, deviceId]
+    );
+  };
+  
+  const handleApplyFilter = async () => {
+    if (!userId || isLoading || isPreferenceLoading) return; 
+    const idsString = pendingSelectedIds.join(',');
+    const stateToSave = {
+        selected_device_ids: idsString,
+        is_filter_active: isPersistentFilterOn,
+    };
+    try {
+      await deviceService.saveFilterPreferences(stateToSave);
+      setSelectedDeviceIds(pendingSelectedIds); 
+    } catch (e) {
+        setError(e.message);
+    }
+  };
+
+  // New handler for the "Show hidden" checkbox
+  const handleShowHiddenToggle = (e) => {
+    setShowHidden(e.target.checked);
+  };
+
+  // --- DELETE HANDLERS ---
+  //const promptForDelete = (deviceId) => {
+   // setDeviceToDeleteId(deviceId);
+   // setIsDeleteModalOpen(true);
+  //};
+
+  //const handleCloseModal = () => {
+  //  setIsDeleteModalOpen(false);
+  //  setDeviceToDeleteId(null);
+  //};
+  
+  //const handleSoftDelete = async () => {
+    //if (!deviceToDeleteId) return;
+    //try {
+      //await deviceService.hideDevice(deviceToDeleteId);
+      // Refetch the list to show the new state
+      //const data = await deviceService.getAllDevices(showHidden);
+     // setFetchedDevices(Array.isArray(data.devices) ? data.devices : []);
+    //} catch (e) {
+     // setError(e.message);
+    //} finally {
+     // handleCloseModal();
+    //}
+  //};
+
+  const handleHardDelete = async () => {
+    if (!deviceToDeleteId) return;
+    try {
+      await deviceService.deleteDevice(deviceToDeleteId);
+      // Remove from UI manually since it's gone from DB
+      setFetchedDevices(prevDevices => 
+        prevDevices.filter(device => device.id !== deviceToDeleteId)
+      );
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      handleCloseModal();
+    }
+  };
+
+// ADD THIS NEW HANDLER
+  const handleToggleActive = async (deviceId, newIsActive) => {
+    try {
+      if (newIsActive) {
+        // Call the new service function
+        await deviceService.unhideDevice(deviceId);
+      } else {
+        // Call the existing service function
+        await deviceService.hideDevice(deviceId);
+      }
+      
+      // Update the state locally so the UI refreshes instantly
+      // This is much faster than re-fetching all devices
+      setFetchedDevices(prevDevices => 
+        prevDevices.map(device => 
+          device.id === deviceId 
+            ? { ...device, is_active: newIsActive } 
+            : device
+        )
+      );
+
+      // If the admin is *not* showing hidden devices, this will
+      // make the device disappear from the list immediately.
+      if (!newIsActive && !showHidden) {
+          setFetchedDevices(prevDevices => 
+            prevDevices.filter(device => device.id !== deviceId)
+          );
+      }
+      
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+
+  // --- CORE FILTER LOGIC ---
+  const finalDeviceList = useMemo(() => {
+    let list = fetchedDevices;
+    
+    if (isPersistentFilterOn && selectedDeviceIds.length > 0) {
+      list = list.filter(device => selectedDeviceIds.includes(device.id));
+    }
+
+    if (searchTerm) {
+      list = list.filter(device => 
+        device.name && device.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    return list;
+  }, [fetchedDevices, selectedDeviceIds, isPersistentFilterOn, searchTerm]);
+
+  // --- RENDER LOGIC ---
+  if (isLoading || isPreferenceLoading) {
+    return <div className="loading-spinner">Loading dashboard...</div>;
+  }
+
+  if (error) {
+    return <div className="error-message">Error: {error}</div>;
+  }
+  
+  const totalScopeCount = fetchedDevices.length;
+  const currentDisplayCount = finalDeviceList.length;
+  
+  let contextIndicatorText = `Displaying all ${totalScopeCount} devices in your scope.`;
+  if (isPersistentFilterOn && totalScopeCount > 0) {
+    contextIndicatorText = `Filtered: Displaying ${currentDisplayCount} out of ${totalScopeCount} total devices in your scope.`;
+  }
+  
+  return (
+    <div className="dashboard-container">
+      <h1>{dashboardTitle}</h1>
+      
+      <p className="context-indicator">{contextIndicatorText}</p> 
+
+      <div className="dashboard-header-bar">
+          <div className="dashboard-actions">
+            <Link to="/add-device" className="add-device-button">
+              + Add New Device
+            </Link>
+          </div>
+          
+          <div className="filter-controls">
+            
+            {/* ADD THE NEW CHECKBOX (FOR ADMINS) */}
+            {isAdmin && (
+              <label className="show-hidden-label">
+                <input 
+                    type="checkbox"
+                    checked={showHidden}
+                    onChange={handleShowHiddenToggle}
+                />
+                Show hidden devices
+              </label>
+            )}
+
+            <label>
+                <input 
+                    type="checkbox"
+                    checked={isPersistentFilterOn}
+                    onChange={handleToggleFilter}
+                />
+                Show Only Filtered
+            </label>
+            
+            <button 
+              className="apply-filter-button" 
+              onClick={handleApplyFilter}>
+                  Apply/Save Filter ({pendingSelectedIds.length})
+            </button>
+          </div>
+      </div>
+      
+      <input
+        type="text"
+        placeholder="Filter by device name..."
+        className="search-input"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+      
+      {finalDeviceList.length === 0 && searchTerm === "" && totalScopeCount > 0 ? (
+          <p className="no-devices-message">No devices found in your scope.</p>
+      ) : (
+          <DeviceTable 
+            devices={finalDeviceList}
+            //onDelete={promptForDelete}
+            onSelect={handleDeviceSelection} 
+            //onUnhide={handleUnhide}
+            selectedIds={pendingSelectedIds}
+            isFiltering={isPersistentFilterOn}
+          />
+      )}
+      
+      <ConfirmDeleteModal
+        isOpen={isDeleteModalOpen}
+        //onClose={handleCloseModal}
+        //onSoftDelete={handleSoftDelete}
+        onHardDelete={handleHardDelete}
+        showHardDelete={isAdmin}
+      />
+    </div>
+  );
+}
+  
+export default DashboardPage;

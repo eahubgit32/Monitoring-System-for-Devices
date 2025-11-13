@@ -214,3 +214,23 @@ class Threshold(models.Model):
     def __str__(self):
         # Example: "CoreRouter1 - CPU Usage alert"
         return f"{self.device.hostname} - {self.metric.metric_name} alert"
+
+
+# ======================
+# USER PREFERENCE TABLE (NEW)
+# ======================
+class UserPreference(models.Model):
+    # Links preference to the User (one-to-one relationship)
+    # primary_key=True is important for OneToOneField
+    user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True) 
+    
+    # Stores the IDs of the devices the user has selected for their filter
+    # We store it as text and will parse it into an array in React/Django
+    selected_device_ids = models.TextField(default="",blank=True)
+    
+    # Stores the state of the main filter toggle (True/False)
+    is_filter_active = models.BooleanField(default=False)
+
+    def __str__(self):
+        # We must include the username for display
+        return f"Preferences for {self.user.username}"
