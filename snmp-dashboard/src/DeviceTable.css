@@ -1,0 +1,96 @@
+/* src/DeviceTable.css */
+
+.device-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.device-table th,
+.device-table td {
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+.device-table th {
+  background-color: #f4f4f4;
+  font-weight: 600;
+}
+
+.device-table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.device-table tbody tr:hover {
+  background-color: #f1f1f1;
+}
+
+/* --- This is for the status indicator dots --- */
+.status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.status-up {
+  background-color: #28a745; /* Green */
+}
+
+.status-down {
+  background-color: #dc3545; /* Red */
+}
+
+.status-warning {
+  background-color: #ffc107; /* Yellow */
+}
+
+
+/* src/DeviceTable.css */
+
+.actions-cell {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-button {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 12px;
+  text-decoration: none;
+  color: white;
+}
+
+.edit-button {
+  background-color: #007bff; /* Blue */
+}
+.edit-button:hover {
+  background-color: #0056b3;
+}
+
+.delete-button {
+  background-color: #dc3545; /* Red */
+}
+.delete-button:hover {
+  background-color: #c82333;
+}
+
+/* src/DeviceTable.css */
+
+/* --- STYLES for Selection Column --- */
+.selection-cell {
+  text-align: center;
+  width: 40px; /* Gives the checkbox its own small column */
+  vertical-align: middle;
+}
+
+

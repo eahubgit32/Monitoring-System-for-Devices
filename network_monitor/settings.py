@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import environ
 import os
 from pathlib import Path
-from cryptography.fernet import Fernet
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -30,11 +29,21 @@ SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'dev.local', # <--- ADD THIS
+    env('DATABASE_HOST'), # Allows Django to communicate with the database host
+]
 
 
 # Application definition
 
+# network_monitor/settings.py
+
+# network_monitor/settings.py
+
+# THIS LIST IS CORRECT! KEEP IT.
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -42,25 +51,34 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'monitoring',  # MAIN PROJECT CONTAINER
+    'monitoring',
+    'rest_framework',
+    'corsheaders',  # <-- 1. ADD THIS
 ]
 
+# network_monitor/settings.py
+
 MIDDLEWARE = [
+    # 1. Session Middleware MUST come first to handle the cookie
+    'django.contrib.sessions.middleware.SessionMiddleware', 
+    
+    # 2. CORS Middleware must be next
+    'corsheaders.middleware.CorsMiddleware',
+    
+    # 3. Security, Common, and Auth follow
     'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware', # (Needed for Admin)
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
 ROOT_URLCONF = 'network_monitor.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / "monitoring/templates"],
+        'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -120,7 +138,7 @@ TIME_ZONE = 'Asia/Manila'
 
 USE_I18N = True
 
-# USE_TZ = True
+USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
@@ -133,21 +151,36 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# --- Fernet Key for Device credentials encryption ---
-FERNET_KEY = os.getenv('FERNET_KEY')  # first try environment variable
+# 3. ADD THIS NEW SECTION (at the bottom of the file)
+# This tells Django to trust your React app
+# network_monitor/settings.py
 
-if not FERNET_KEY:
-    # fallback to a local file (installer can write this file)
-    key_path = os.path.join(os.path.dirname(__file__), 'fernet.key')
-    if os.path.exists(key_path):
-        with open(key_path) as f:
-            FERNET_KEY = f.read().strip()
+# ... (at the very bottom of the file) ...
 
-if not FERNET_KEY:
-    # first-time installer: generate a key
-    FERNET_KEY = Fernet.generate_key().decode()
-    with open(key_path, 'w') as f:
-        f.write(FERNET_KEY)
-    os.chmod(key_path, 0o600)  # secure the file
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication', 
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated', 
+    ]
+}
 
-FERNET = Fernet(FERNET_KEY.encode() if isinstance(FERNET_KEY, str) else FERNET_KEY)
+# network_monitor/settings.py
+
+# --- FINAL, CORRECT COOKIE/CORS CONFIGURATION ---
+
+TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://dev.local:5173",
+]
+CORS_ALLOWED_ORIGINS = TRUSTED_ORIGINS
+CSRF_TRUSTED_ORIGINS = TRUSTED_ORIGINS
+
+# CRITICAL: These settings allow the cross-port session handshake
+CORS_ALLOW_CREDENTIALS = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
