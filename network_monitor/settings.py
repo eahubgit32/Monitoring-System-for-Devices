@@ -220,12 +220,12 @@ CSRF_COOKIE_SECURE = False
 FERNET = Fernet(FERNET_KEY.encode() if isinstance(FERNET_KEY, str) else FERNET_KEY)
 
 
+# KEEP THIS BLOCK
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        # Remove SessionAuthentication to stop DRF from enforcing the CSRF check
-        # 'rest_framework.authentication.TokenAuthentication', # If you use tokens later, uncomment this.
-    ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.AllowAny',
-    )
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication', 
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated', 
+    ]
 }
