@@ -35,14 +35,11 @@ class BaseIconAdmin(admin.ModelAdmin):
     - Add 'action_buttons' column for Edit/Delete links.
     - Disable default actions dropdown (delete selected).
     - Intended to be extended by other admins.
+    - Respects Django permissions.
     """
     actions = None  # Remove "delete selected"
 
     def action_buttons(self, obj):
-        """
-        Render Edit/Delete links for a model instance.
-        These links appear in the list_display column.
-        """
         change_url = reverse(
             f'admin:{obj._meta.app_label}_{obj._meta.model_name}_change',
             args=[obj.pk]
@@ -51,13 +48,32 @@ class BaseIconAdmin(admin.ModelAdmin):
             f'admin:{obj._meta.app_label}_{obj._meta.model_name}_delete',
             args=[obj.pk]
         )
-        return format_html(
-            '<a href="{}">✏️ Edit</a> | <a href="{}">❌ Delete</a>',
-            change_url, delete_url
-        )
+        buttons = []
+        if self.has_change_permission(self.request, obj):
+            buttons.append(f'<a href="{change_url}">✏️ Edit</a>')
+        if self.has_delete_permission(self.request, obj):
+            buttons.append(f'<a href="{delete_url}">❌ Delete</a>')
+        return format_html(" | ".join(buttons))
 
     action_buttons.short_description = 'Actions'
 
+    # Override get_queryset to store request for permission checks
+    def get_queryset(self, request):
+        """Store request for use in action_buttons"""
+        self.request = request
+        return super().get_queryset(request)
+
+    # Permission to show model in sidebar
+    def has_module_permission(self, request):
+        """
+        Show the model in the sidebar only if the user has at least
+        one permission (view/add/change/delete)
+        """
+        opts = self.model._meta
+        return request.user.has_perm(f'{opts.app_label}.view_{opts.model_name}') or \
+               request.user.has_perm(f'{opts.app_label}.add_{opts.model_name}') or \
+               request.user.has_perm(f'{opts.app_label}.change_{opts.model_name}') or \
+               request.user.has_perm(f'{opts.app_label}.delete_{opts.model_name}')
 
 # ----------------------------------------------------
 # Custom AdminSite for grouped sidebar
@@ -268,7 +284,7 @@ class DeviceAdmin(admin.ModelAdmin):
     """
     list_display = ('hostname', 'ip_address', 'model', 'user', 'action_buttons')
     list_filter = ('model', 'user')
-    search_fields = ('hostname', 'ip_address')
+    search_fields = ('hostname', 'ip_address', 'model', 'user')
     actions = None  # remove "delete selected"
 
     form = DeviceAdminForm # use custom form with password handling
@@ -332,10 +348,12 @@ class DeviceAdmin(admin.ModelAdmin):
     # Queryset filtering based on user
     def get_queryset(self, request):
         """Filter queryset for non-superusers to only show their devices."""
+        self.request = request  # store the request so action_buttons() can access it
         qs = super().get_queryset(request)
         if request.user.is_superuser:
             return qs
         return qs.filter(user=request.user)
+
 
     # Permission overrides
     def has_change_permission(self, request, obj=None):
@@ -345,26 +363,52 @@ class DeviceAdmin(admin.ModelAdmin):
         return request.user.is_superuser or obj.user == request.user
 
     def has_delete_permission(self, request, obj=None):
-        """Allow delete only for owner or superuser."""
-        if obj is None:
-            return True
-        return request.user.is_superuser or obj.user == request.user
+        """
+        Allow deletion only if:
+        - user has the 'delete_device' permission, and
+        - (optionally) the device belongs to the user, or user is superuser
+        """
+        if not request.user.has_perm('monitoring.delete_device'):
+            return False
+
+        if obj is not None:
+            # If the device has a user field, enforce ownership rule
+            return request.user.is_superuser or obj.user == request.user
+
+        # Default (changelist page): allow view but no mass delete
+        return True
+    
+    def get_model_perms(self, request):
+        """
+        Control model visibility and button availability.
+        If user lacks delete permission, remove the 'delete' button.            
+        """
+        perms = super().get_model_perms(request)
+        if not request.user.has_perm('monitoring.delete_device'):
+            perms['delete'] = False
+        return perms
 
     # Action buttons column
     def action_buttons(self, obj):
-        """Render Edit/Delete buttons for each device row."""
+        """Render Edit/Delete buttons for each device row, respecting user permissions."""
+        user = self.request.user  # store request for permission check
         change_url = reverse(
             f'admin:{obj._meta.app_label}_{obj._meta.model_name}_change',
             args=[obj.pk]
         )
-        delete_url = reverse(
-            f'admin:{obj._meta.app_label}_{obj._meta.model_name}_delete',
-            args=[obj.pk]
-        )
-        return format_html(
-            '<a href="{}">✏️ Edit</a> | <a href="{}">❌ Delete</a>',
-            change_url, delete_url
-        )
+
+        buttons = [f'<a href="{change_url}">✏️ Edit</a>']
+
+        # Only show delete button if user has permission
+        if user.has_perm('monitoring.delete_device') and (user.is_superuser or obj.user == user):
+            delete_url = reverse(
+                f'admin:{obj._meta.app_label}_{obj._meta.model_name}_delete',
+                args=[obj.pk]
+            )
+            buttons.append(f'<a href="{delete_url}">❌ Delete</a>')
+
+        return format_html(' | '.join(buttons))
+
 
     action_buttons.short_description = 'Actions'
 
@@ -385,6 +429,8 @@ class HistoryAdmin(admin.ModelAdmin):
     list_filter = ('timestamp', 'device', 'metric')
     search_fields = ('device__hostname', 'metric__metric_name')
 
+    actions = None  # remove "delete selected"
+
     def has_add_permission(self, request):
         return False
 
@@ -392,7 +438,16 @@ class HistoryAdmin(admin.ModelAdmin):
         return False
 
     def has_delete_permission(self, request, obj=None):
-        return False
+        if obj is None:
+            # No object specified → user is viewing changelist → never allow bulk delete
+            return False
+        # Allow deletion only during cascade delete (Device removal)
+        if hasattr(obj, "device") and hasattr(obj.device, "user"):
+            # Allow only if superuser or owner of the Device
+            return request.user.is_superuser or obj.device.user == request.user
+
+        # Fallback: allow only superuser if no linked device
+        return request.user.is_superuser
 
     def local_timestamp(self, obj):
         # Converts UTC timestamp to your TIME_ZONE
