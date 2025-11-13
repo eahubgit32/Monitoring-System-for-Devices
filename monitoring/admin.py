@@ -72,12 +72,12 @@ class MonitoringAdminSite(admin.AdminSite):
     site_title = "Monitoring Admin"
     index_title = "Network Monitoring Control Panel"
 
-    def get_app_list(self, request):
+    def get_app_list(self, request, app_label=None):
         """
         Returns a custom grouped structure of models for the sidebar.
         Filters out any unregistered models to prevent empty sections.
         """
-        app_list = super().get_app_list(request)
+        app_list = super().get_app_list(request, app_label=app_label)
         grouped = [
             {
                 "name": _("Monitoring"),
@@ -114,6 +114,13 @@ class MonitoringAdminSite(admin.AdminSite):
         # Remove any None entries
         for group in grouped:
             group["models"] = [m for m in group["models"] if m]
+
+            #If app_label is provided,Django expects to return original ungrouped list for that app
+            #Otherwise, show the custom grouped list on the main index
+
+            if app_label:
+                return app_list
+            
         return grouped
 
     def _find_model(self, app_list, model_name, app_label="monitoring"):
