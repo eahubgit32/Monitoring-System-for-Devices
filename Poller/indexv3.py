@@ -133,10 +133,10 @@ class SNMP_GET_DAT:
             "CPU": int(self.SYSDESC_ARR[0]),                            # CPU
             "USED_MEM": int(self.SYSDESC_ARR[1]),                       # USED MEMORY
             "FREE_MEM": int(self.SYSDESC_ARR[2]),                       # FREE MEMORY
-            "IP_ADD": str(self.SYSDESC_ARR[3]).replace("\n",""),        # IP ADDRESS
-            "MASK": str(self.SYSDESC_ARR[4]).replace("\n",""),          # SUBNET MASK
-            "HOST": str(self.SYSDESC_ARR[5]).replace("\n",""),          # HOSTNAME
-            "DESC": str(self.SYSDESC_ARR[6]).replace("\n",""),          # COMPLETE DESCRIPTION
+            "IP_ADD": str(self.SYSDESC_ARR[3]).replace("\n",", "),        # IP ADDRESS
+            "MASK": str(self.SYSDESC_ARR[4]).replace("\n",", "),          # SUBNET MASK
+            "HOST": str(self.SYSDESC_ARR[5]).replace("\n",", "),          # HOSTNAME
+            "DESC": str(self.SYSDESC_ARR[6]).replace("\n",", "),          # COMPLETE DESCRIPTION
             "TOTAL_PORT": int(self.TOTAL_PORTS)                         # TOTAL NUMBER OF INTERFACE
             #"TIMESTAMP": str(datetime.now())
         }, {            
