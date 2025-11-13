@@ -19,10 +19,22 @@ pip install -r requirements.txt
 python manage.py runserver
 ```
 
-# How to build React Frontend
-```js
+# How to setup React Frontend
+1. Go to your directory
+```bash
 cd path/to/your/react-project
+```
+2. Install packages if not already installed
+```bash
+npm install
+```
+3. Create the build files
+```bash
 npm run build
+```
+4. (Optional) Run the dev server
+```bash
+npm run dev
 ```
 
 # How to push all changes made to Git Repo

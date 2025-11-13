@@ -6,7 +6,7 @@ django-admin-interface==0.30.1
 django-colorfield==0.14.0
 django-environ==0.12.0
 mysqlclient==2.2.7
-pillow==11.3.0
+pillow
 pycparser==2.23
 PyMySQL==1.1.2
 python-slugify==8.0.4
