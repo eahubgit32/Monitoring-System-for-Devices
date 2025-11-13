@@ -24,8 +24,9 @@ from monitoring.admin import custom_admin_site
 
 
 urlpatterns = [
-    path('admin/', admin.site.urls), 
+    path('admin/', custom_admin_site.urls), 
     path('api/', include('monitoring.urls')),
+    
     re_path(r'^.*', TemplateView.as_view(template_name='index.html')), 
 ]
 

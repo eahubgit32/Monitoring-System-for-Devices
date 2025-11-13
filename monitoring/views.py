@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # monitoring/views.py - FINAL CORRECTED CODE
 from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
@@ -15,6 +14,15 @@ from .serializers import (
 from monitoring.models import (
     Device, DeviceModel, UserPreference, Interface # <-- ADD Interface
 )
+
+
+#========
+import json
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from .discover_device import discover_device # Import the function from the new script file
+
 
 # READ-ONLY VIEWSET (Dropdown Data)
 class DeviceModelViewSet(viewsets.ReadOnlyModelViewSet):
@@ -108,7 +116,6 @@ def logout_view(request):
 
 
 
-
 # Custom View to handle the single preference object for the current user
 class UserPreferenceView(RetrieveModelMixin, UpdateModelMixin, GenericAPIView):
     serializer_class = UserPreferenceSerializer
@@ -154,13 +161,7 @@ class DeviceInterfaceListView(ListAPIView):
         ).prefetch_related( # This makes it fast!
             'history_set__metric'
         ).order_by('ifIndex') # Order by interface number
-=======
-import json
-from django.shortcuts import render
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
-from .discover_device import discover_device # Import the function from the new script file
+
 
 @csrf_exempt # Allows POST requests from the React frontend without a CSRF token
 @require_http_methods(["POST"])
@@ -214,4 +215,3 @@ def device_discovery_api(request):
         # Catch any unexpected Python errors during script execution
         print(f"Error during device discovery: {e}")
         return JsonResponse({"status": "error", "message": f"Server processing error: {e}"}, status=500)
->>>>>>> 447feb76a0c47021b151312bd9126c146408e44e
