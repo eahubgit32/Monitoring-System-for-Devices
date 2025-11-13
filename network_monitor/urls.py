@@ -17,9 +17,15 @@ Including another URLconf
 # network_monitor/urls.py - FINAL CORRECTED CODE
 
 from django.contrib import admin
-from django.urls import path, include
+#========
+from django.urls import path, re_path, include
+from django.views.generic import TemplateView
+from monitoring.admin import custom_admin_site
+
 
 urlpatterns = [
     path('admin/', admin.site.urls), 
-    path('api/', include('monitoring.urls')), 
+    path('api/', include('monitoring.urls')),
+    re_path(r'^.*', TemplateView.as_view(template_name='index.html')), 
 ]
+

@@ -12,9 +12,13 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import environ
 import os
 from pathlib import Path
+from cryptography.fernet import Fernet
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Defining temporary directory for React build files
+REACT_BUILD_DIR = os.path.join(BASE_DIR, 'frontend', 'dist')
 
 env = environ.Env()
 # Read the .env file
@@ -78,7 +82,9 @@ ROOT_URLCONF = 'network_monitor.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+
+        'DIRS': [REACT_BUILD_DIR, BASE_DIR / "monitoring/templates"],
+
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -146,6 +152,11 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Include the entire React build folder as a source for static files
+STATICFILES_DIRS = [
+    REACT_BUILD_DIR,
+]
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
@@ -156,6 +167,28 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # network_monitor/settings.py
 
 # ... (at the very bottom of the file) ...
+
+FERNET_KEY = os.getenv('FERNET_KEY')  # first try environment variable
+
+if not FERNET_KEY:
+    # fallback to a local file (installer can write this file)
+    key_path = os.path.join(os.path.dirname(__file__), 'fernet.key')
+    if os.path.exists(key_path):
+        with open(key_path) as f:
+            FERNET_KEY = f.read().strip()
+
+if not FERNET_KEY:
+    # first-time installer: generate a key
+    FERNET_KEY = Fernet.generate_key().decode()
+    with open(key_path, 'w') as f:
+        f.write(FERNET_KEY)
+    os.chmod(key_path, 0o600)  # secure the file
+
+FERNET = Fernet(FERNET_KEY.encode() if isinstance(FERNET_KEY, str) else FERNET_KEY)
+
+
+
+
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -184,3 +217,15 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
+FERNET = Fernet(FERNET_KEY.encode() if isinstance(FERNET_KEY, str) else FERNET_KEY)
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        # Remove SessionAuthentication to stop DRF from enforcing the CSRF check
+        # 'rest_framework.authentication.TokenAuthentication', # If you use tokens later, uncomment this.
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.AllowAny',
+    )
+}
