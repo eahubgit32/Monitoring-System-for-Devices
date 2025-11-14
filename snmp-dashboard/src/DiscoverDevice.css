@@ -2,16 +2,16 @@
    GLOBAL STYLES (Screen Filling)
    ------------------------------------------------------------------- */
 /* Ensure the body and root elements take up the full viewport height */
+/*
 body, #root {
     margin: 0;
     padding: 0;
-    /* Set height to 100% of the viewport height */
     height: 100vh; 
-    /* Prevent horizontal scrollbar */
     width: 100%;
     overflow-x: hidden; 
-    background-color: #f9fafb; /* Light background for the screen */
+    background-color: #f9fafb;
 }
+*/
 
 /* --- Container for the entire application --- */
 .app-container {
@@ -24,7 +24,9 @@ body, #root {
     padding: 20px;
     font-family: 'Inter', sans-serif;
     /* This background should fill the whole browser window */
-    background-color: #f9fafb; /* Light background for the screen */
+    background-image: url('/Wallpaper2.png');
+    background-size: cover;
+    background-position: center;
 }
 
 /* -------------------------------------------------------------------
