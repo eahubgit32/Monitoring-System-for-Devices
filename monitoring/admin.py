@@ -170,12 +170,12 @@ class BrandAdmin(BaseIconAdmin):
     list_display = ('brand_name', 'action_buttons')
     search_fields = ('brand_name',)
     
-def save_model(self, request, obj, form, change):
-        """Prevent creating duplicate Brand names."""
-        if not change:
-            if Brand.objects.filter(brand_name=obj.brand_name).exists():
-                raise ValidationError("A Brand with this name already exists.")
-        super().save_model(request, obj, form, change)
+    def save_model(self, request, obj, form, change):
+            """Prevent creating duplicate Brand names."""
+            if not change:
+                if Brand.objects.filter(brand_name=obj.brand_name).exists():
+                    raise ValidationError("A Brand with this name already exists.")
+            super().save_model(request, obj, form, change)
 
 class DeviceTypeAdmin(BaseIconAdmin):
     """
@@ -199,17 +199,85 @@ class MetricAdmin(BaseIconAdmin):
     list_filter = ('unit',)
     search_fields = ('metric_name', 'unit')
 
-def save_model(self, request, obj, form, change):
-        """Prevent creating duplicate Metric names."""
-        if not change:
-            if Metric.objects.filter(metric_name=obj.metric_name).exists():
-                raise ValidationError("A Metric with this name already exists.")
-        super().save_model(request, obj, form, change)
+    def save_model(self, request, obj, form, change):
+            """Prevent creating duplicate Metric names."""
+            if not change:
+                if Metric.objects.filter(metric_name=obj.metric_name).exists():
+                    raise ValidationError("A Metric with this name already exists.")
+            super().save_model(request, obj, form, change)
 
 custom_admin_site.register(Brand, BrandAdmin)
 custom_admin_site.register(DeviceType, DeviceTypeAdmin)
 custom_admin_site.register(Metric, MetricAdmin)
 
+# ----------------------------------------------------
+# Custom List Filter for User-Specific Devices
+# ----------------------------------------------------
+class UserDeviceFilter(admin.SimpleListFilter):
+    """
+    A custom list filter that, for non-superusers, only
+    shows Devices that belong to them.
+    """
+    title = _('device')         # The title of the filter
+    parameter_name = 'device'  # The URL parameter (e.g., ?device=1)
+
+    def lookups(self, request, model_admin):
+        """
+        Returns a list of tuples (value, label) for the filter options.
+        """
+        if request.user.is_superuser:
+            # Superusers see all devices
+            devices = Device.objects.all()
+        else:
+            # Normal users see only their own devices
+            devices = Device.objects.filter(user=request.user)
+            
+        # Return the (id, hostname) pairs for the dropdown
+        return [(d.id, d.hostname) for d in devices]
+
+    def queryset(self, request, queryset):
+        """
+        Applies this filter to the main list.
+        """
+        if self.value():
+            # If a value is selected, filter the interface list by it
+            return queryset.filter(device__id=self.value())
+        return queryset
+
+# ----------------------------------------------------
+# Custom List Filter for User-Specific Device Models
+# ----------------------------------------------------
+class UserSpecificModelFilter(admin.SimpleListFilter):
+    """
+    A custom list filter that, for non-superusers, only
+    shows Device Models that are in their device list.
+    """
+    title = _('model')
+    parameter_name = 'model' # This must match the field name
+
+    def lookups(self, request, model_admin):
+        """
+        Returns a list of tuples (value, label) for the filter options.
+        """
+        # Get the queryset that's already filtered by DeviceAdmin.get_queryset()
+        queryset = model_admin.get_queryset(request)
+        
+        # Get the unique IDs of the models from this filtered device list
+        model_ids = queryset.values_list('model_id', flat=True).distinct()
+        
+        # Fetch the actual DeviceModel objects
+        models = DeviceModel.objects.filter(id__in=model_ids)
+            
+        return [(m.id, m.model_name) for m in models]
+
+    def queryset(self, request, queryset):
+        """
+        Applies this filter to the main list.
+        """
+        if self.value():
+            # Filter the device list by the selected model ID
+            return queryset.filter(model__id=self.value())
+        return queryset
 
 # --- Custom ModelForm for Device ---
 class DeviceAdminForm(forms.ModelForm):
@@ -271,6 +339,21 @@ class DeviceAdminForm(forms.ModelForm):
             instance.save()
         return instance
 
+    # Validate that passwords are provided
+    def clean(self):
+        cleaned_data = super().clean()
+        username = cleaned_data.get('username')
+        auth_pwd = cleaned_data.get('snmp_auth_password')
+        priv_pwd = cleaned_data.get('snmp_priv_password')
+
+        if not username:
+            raise forms.ValidationError("SNMP Username is required.")
+        if not auth_pwd:
+            raise forms.ValidationError("SNMP Auth Password is required.")
+        if not priv_pwd:
+            raise forms.ValidationError("SNMP AES Password is required.")
+
+        return cleaned_data
 
 # ----------------------------------------------------
 # DeviceAdmin with per-user permissions
@@ -288,7 +371,7 @@ class DeviceAdmin(admin.ModelAdmin):
     """
     list_display = ('hostname', 'ip_address', 'model', 'user', 'action_buttons')
     list_filter = ('model', 'user')
-    search_fields = ('hostname', 'ip_address', 'model', 'user')
+    search_fields = ('hostname', 'ip_address', 'model__model_name', 'user__username')
     actions = None  # remove "delete selected"
 
     form = DeviceAdminForm # use custom form with password handling
@@ -334,22 +417,6 @@ class DeviceAdmin(admin.ModelAdmin):
                 from django.core.exceptions import ValidationError
                 raise ValidationError("A device with this hostname and IP already exists.")
         super().save_model(request, obj, form, change)
-
-    # Validate that passwords are provided
-    def clean(self):
-        cleaned_data = super().clean()
-        username = cleaned_data.get('username')
-        auth_pwd = cleaned_data.get('snmp_auth_password')
-        priv_pwd = cleaned_data.get('snmp_priv_password')
-
-        if not username:
-            raise forms.ValidationError("SNMP Username is required.")
-        if not auth_pwd:
-            raise forms.ValidationError("SNMP Auth Password is required.")
-        if not priv_pwd:
-            raise forms.ValidationError("SNMP AES Password is required.")
-
-        return cleaned_data
 
     # Queryset filtering based on user
     def get_queryset(self, request):
@@ -422,7 +489,6 @@ class DeviceAdmin(admin.ModelAdmin):
 
         # This is the GET request (showing the confirmation page)
         
-        # --- THIS IS THE PERFORMANCE FIX ---
         # Get the fast counts
         history_count = obj.history_set.count() # Use your related_name
 
@@ -473,6 +539,22 @@ class DeviceAdmin(admin.ModelAdmin):
 
     action_buttons.short_description = 'Actions'
 
+    # This method overrides the default list_filter
+    def get_list_filter(self, request):
+        """
+        Returns a custom list of filters based on user type.
+        - Superusers see all model and user filters.
+        - Normal users see a model filter (limited to their devices)
+          and no user filter (since it's redundant).
+        """
+        if request.user.is_superuser:
+            # Superuser sees the default filters
+            return ('model', 'user')
+        else:
+            # Normal user sees our custom model filter
+            # and the 'user' filter is hidden.
+            return (UserSpecificModelFilter,)
+
 
 # Register Device with custom admin site
 custom_admin_site.register(Device, DeviceAdmin)
@@ -487,7 +569,7 @@ class HistoryAdmin(admin.ModelAdmin):
     Read-only view: no add/change/delete allowed.
     """
     list_display = ('timestamp', 'device', 'metric', 'interface', 'value')
-    list_filter = ('timestamp', 'device', 'metric')
+    list_filter = ('timestamp', UserDeviceFilter, 'metric')
     search_fields = ('device__hostname', 'metric__metric_name')
 
     actions = None  # remove "delete selected"
@@ -537,21 +619,21 @@ class DeviceModelAdmin(BaseIconAdmin):
     """
     list_display = ('model_name', 'brand', 'type', 'action_buttons')
     list_filter = ('brand', 'type')
-    search_fields = ('model_name', 'brand', 'type')
+    search_fields = ('model_name', 'brand__brand_name', 'type__type_name')
     
-def save_model(self, request, obj, form, change):
-        """Prevent creating duplicate DeviceModel names."""
-        if not change:
-            if DeviceModel.objects.filter(model_name=obj.model_name).exists():
-                raise ValidationError("A Device Model with this name already exists.")
-        super().save_model(request, obj, form, change)
+    def save_model(self, request, obj, form, change):
+            """Prevent creating duplicate DeviceModel names."""
+            if not change:
+                if DeviceModel.objects.filter(model_name=obj.model_name).exists():
+                    raise ValidationError("A Device Model with this name already exists.")
+            super().save_model(request, obj, form, change)
 
 class InterfaceAdmin(BaseIconAdmin):
     """
     Admin for Interface.
     """
     list_display = ('device', 'ifIndex', 'ifName', 'ifDescr', 'ifAlias', 'action_buttons')
-    list_filter = ('device',)
+    list_filter = (UserDeviceFilter,)
     search_fields = ('device__hostname', 'ifName', 'ifDescr', 'ifAlias')
 
     def get_queryset(self, request):
@@ -579,7 +661,7 @@ class OidMapAdmin(BaseIconAdmin):
     """
     list_display = ('model', 'metric', 'oid', 'description', 'action_buttons')
     list_filter = ('model', 'metric', 'oid')
-    search_fields = ('model', 'metric', 'oid')
+    search_fields = ('model__model_name', 'metric__metric_name', 'oid')
 
 
 class ThresholdAdmin(BaseIconAdmin):
@@ -587,8 +669,27 @@ class ThresholdAdmin(BaseIconAdmin):
     Admin for Threshold rules.
     """
     list_display = ('device', 'metric', 'interface', 'condition', 'value', 'alert_level', 'action_buttons')
-    list_filter = ('device', 'metric', 'interface', 'condition', 'value', 'alert_level')
-    search_fields = ('device', 'metric', 'interface', 'condition', 'value', 'alert_level')
+    list_filter = (UserDeviceFilter, 'metric', 'interface', 'condition', 'value', 'alert_level')
+    search_fields = ('device__hostname', 'metric__metric_name', 'interface__ifName', 'interface__ifDescr', 'interface__ifAlias', 'condition', 'value', 'alert_level')
+
+    def get_queryset(self, request):
+        """
+        Filter queryset for non-superusers to only show thresholds
+        belonging to their devices.
+        """
+        # Store the request for BaseIconAdmin's action_buttons
+        self.request = request 
+        
+        # Get the base queryset
+        qs = super().get_queryset(request)
+        
+        # If superuser, show everything
+        if request.user.is_superuser:
+            return qs
+        
+        # If normal user, filter by their devices
+        # The path is threshold -> device -> user
+        return qs.filter(device__user=request.user)
 
 custom_admin_site.register(DeviceModel, DeviceModelAdmin)
 custom_admin_site.register(Interface, InterfaceAdmin)
