@@ -1,33 +1,52 @@
-/* src/DeviceTable.css */
+/* src/DeviceTable.css - FINAL DARK THEME */
 
 .device-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  
+  /* Remove box-shadow, it's inside the dark panel */
+  box-shadow: none; 
+
+  /* --- DARK THEME --- */
+  background-color: transparent; /* Keep the panel's blur visible */
+  color: #eee; /* Light text */
+  border: none; /* No outer border */
 }
 
 .device-table th,
 .device-table td {
   padding: 12px 15px;
-  border: 1px solid #ddd;
+  border: 1px solid #444; /* Dark grid lines */
   text-align: left;
 }
 
 .device-table th {
-  background-color: #f4f4f4;
+  /* Subtle light header bg */
+  background-color: rgba(255, 255, 255, 0.1); 
   font-weight: 600;
+  color: #fff;
 }
 
+/* --- THIS IS YOUR REQUEST --- */
+/* Add a subtle dark background to all data rows */
+.device-table tbody tr {
+  /* This 'mat' separates the text from the wallpaper */
+  background-color: rgba(0, 0, 0, 0.4); 
+}
+
+/* This rule is now redundant, but good to keep for clarity */
 .device-table tbody tr:nth-child(even) {
-  background-color: #f9f9f9;
+  background-color: rgba(0, 0, 0, 0.4);
 }
 
+/* Make the hover effect *brighter* than the row bg */
 .device-table tbody tr:hover {
-  background-color: #f1f1f1;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* --- This is for the status indicator dots --- */
+
+/* --- STATUS DOTS (Unchanged) --- */
 .status-dot {
   display: inline-block;
   width: 10px;
@@ -36,29 +55,17 @@
   margin-right: 8px;
   vertical-align: middle;
 }
+.status-up { background-color: #28a745; }
+.status-down { background-color: #dc3545; }
+.status-warning { background-color: #ffc107; }
 
-.status-up {
-  background-color: #28a745; /* Green */
-}
-
-.status-down {
-  background-color: #dc3545; /* Red */
-}
-
-.status-warning {
-  background-color: #ffc107; /* Yellow */
-}
-
-
-/* src/DeviceTable.css */
-
+/* --- ACTIONS (Unchanged) --- */
 .actions-cell {
   display: flex;
   gap: 5px;
   align-items: center;
   justify-content: center;
 }
-
 .action-button {
   padding: 5px 10px;
   border: none;
@@ -69,28 +76,34 @@
   text-decoration: none;
   color: white;
 }
-
 .edit-button {
-  background-color: #007bff; /* Blue */
+  background-color: #007bff;
+  padding: 6px 12px; /* Match apply button */
+  font-size: 14px; /* Match apply button */
 }
 .edit-button:hover {
   background-color: #0056b3;
 }
-
 .delete-button {
-  background-color: #dc3545; /* Red */
+  background-color: #dc3545;
 }
 .delete-button:hover {
   background-color: #c82333;
 }
 
-/* src/DeviceTable.css */
-
-/* --- STYLES for Selection Column --- */
+/* --- SELECTION (Unchanged) --- */
 .selection-cell {
   text-align: center;
-  width: 40px; /* Gives the checkbox its own small column */
+  width: 40px; 
   vertical-align: middle;
 }
 
-
+/* --- METRIC COLORS (Unchanged) --- */
+.device-table .metric-warning {
+  background-color: transparent;
+  color: #ffc107; /* Yellow text */
+}
+.device-table .metric-critical {
+  background-color: transparent;
+  color: #dc3545; /* Red text */
+}
