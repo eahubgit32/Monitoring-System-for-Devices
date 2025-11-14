@@ -1,0 +1,54 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block extrahead %}
+<style>
+    /* Force the 'Yes' button to be red */
+    form input[type="submit"].default {
+        background: #c41c1c; /* Django's red */
+        border-color: #c41c1c;
+    }
+    form input[type="submit"].default:hover {
+        background: #9d1414; /* Darker red */
+        border-color: #9d1414;
+    }
+
+    /* Force the 'No' button to be gray */
+    form a.button.cancel-link {
+        background: #6c757d; /* Gray */
+        border-color: #6c757d;
+        color: #fff !important; /* Force white text */
+    }
+    form a.button.cancel-link:hover {
+        background: #5a6268; /* Darker gray */
+        border-color: #5a6268;
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<p>
+    {% blocktrans with object_name=object_name %}
+    Are you sure you want to delete the device "{{ object_name }}"? 
+    All of the following related items will be deleted:
+    {% endblocktrans %}
+</p>
+
+<h2>{% trans "Summary" %}</h2>
+<ul>
+    {% for item, count in summary.items %}
+        <li>{{ item }}: {{ count }}</li>
+    {% endfor %}
+</ul>
+
+<form method="post">
+    {% csrf_token %}
+    <div>
+        <input type="hidden" name="post" value="yes">
+        
+        <input type="submit" value="{% trans 'Yes, I’m sure' %}" class="default">
+        <a href="#" onclick="window.history.back(); return false;" class="button cancel-link">{% trans "No, take me back" %}</a>
+    </div>
+</form>
+{% endblock %}

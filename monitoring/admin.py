@@ -20,6 +20,10 @@ from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from django import forms
 from django.utils import timezone
+from django.core.exceptions import PermissionDenied
+from django.contrib import messages
+from django.template.response import TemplateResponse
+from django.shortcuts import get_object_or_404, redirect
 from .models import (
     Brand, DeviceType, Metric, DeviceModel,
     Device, Interface, OidMap, History, Threshold
@@ -292,6 +296,8 @@ class DeviceAdmin(admin.ModelAdmin):
     fields = ('hostname', 'ip_address', 'subnet_mask', 'model', 'user', 'username', 'snmp_auth_password',
         'snmp_priv_password') 
 
+    # Tells django admin to use custom template for delete confirmation
+    delete_confirmation_template = "admin/monitoring/device/delete_confirmation.html"
 
     def get_fields(self, request, obj=None):
         """
@@ -387,6 +393,61 @@ class DeviceAdmin(admin.ModelAdmin):
         if not request.user.has_perm('monitoring.delete_device'):
             perms['delete'] = False
         return perms
+    
+    # CUSTOM DELETE_VIEW METHOD (This replaces the default view)
+    def delete_view(self, request, object_id, extra_context=None): 
+        """
+        Overrides the default delete_view to prevent pre-fetching all
+        related objects, which is a major performance bottleneck 
+        (taking too much time to load the delete confirmation page)
+
+        This view *will* call self.has_delete_permission(), respecting
+        all the custom logic defined above.
+        """
+        
+        # Get the object to be deleted
+        obj = get_object_or_404(self.model, pk=object_id)
+        
+        # Check permissions using YOUR existing method
+        if not self.has_delete_permission(request, obj):
+            raise PermissionDenied
+
+        if request.method == 'POST':
+            # This is the user clicking 'Yes, I'm sure'
+            obj.delete()
+            self.message_user(request, _(f'The device "{obj}" was deleted successfully.'), messages.SUCCESS)
+            
+            # Redirect back to the changelist
+            return redirect(reverse(f'admin:{self.opts.app_label}_{self.opts.model_name}_changelist'))
+
+        # This is the GET request (showing the confirmation page)
+        
+        # --- THIS IS THE PERFORMANCE FIX ---
+        # Get the fast counts
+        history_count = obj.history_set.count() # Use your related_name
+
+        # Create the summary dictionary for our template
+        summary = {
+            'Device': 1,
+            'History': history_count,
+            # Add other related models here if needed
+        }
+        
+        # Build the context for our custom template
+        context = {
+            **self.admin_site.each_context(request),
+            'title': _('Are you sure?'),
+            'object': obj,
+            'object_name': str(obj),
+            'opts': self.model._meta,
+            'app_label': self.model._meta.app_label,
+            'summary': summary, # Pass our custom summary
+            'has_permission': True,
+            **(extra_context or {}),
+        }
+
+        return TemplateResponse(request, self.delete_confirmation_template, context)
+        
 
     # Action buttons column
     def action_buttons(self, obj):
