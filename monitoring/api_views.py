@@ -1,7 +1,8 @@
 from django.shortcuts import get_object_or_404
 from django.db import IntegrityError, transaction
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -10,6 +11,7 @@ from .serializers import DeviceRegistrationSerializer, BrandSerializer, DeviceTy
 
 # @csrf_exempt # Allows POST requests from the React frontend without a CSRF token
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def get_device_metadata(request):
     """
     API endpoint to fetch all pre-filled data (Brands, Types, Models)
@@ -33,8 +35,9 @@ def get_device_metadata(request):
             status=500
         )
 
-@csrf_exempt # Allows POST requests from the React frontend without a CSRF token
+# @csrf_exempt # Allows POST requests from the React frontend without a CSRF token
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def confirm_add_device(request):
     """
     API endpoint to register a new device and its associated interfaces.

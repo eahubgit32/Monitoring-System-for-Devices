@@ -13,6 +13,7 @@ import DeviceDetailsPage from './DeviceDetailsPage.jsx';
 import LoginPage from './LoginPage.jsx';
 import AddDevicePage from './AddDevicePage.jsx'; // <-- 1. IMPORT
 import EditDevicePage from './EditDevicePage.jsx'; // <-- 1. IMPORT
+import DiscoverDevice from './DiscoverDevice.jsx';
 
 const router = createBrowserRouter([
   {
@@ -34,7 +35,7 @@ const router = createBrowserRouter([
           },
           {
             path: "/add-device",
-            element: <AddDevicePage />,
+            element: <DiscoverDevice />,
           },
           {
             path: "/edit-device/:deviceId",

@@ -33,6 +33,6 @@ urlpatterns = [
     # Endpoint for frontend metadata
     path('metadata/', api_views.get_device_metadata, name='get_device_metadata'),
     # Endpoint for confirming and registering the device
-    path('devices/register/', api_views.confirm_add_device, name='confirm_add_device'),
+    path('device/register/', api_views.confirm_add_device, name='confirm_add_device'),
 
 ]

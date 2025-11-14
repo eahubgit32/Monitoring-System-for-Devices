@@ -1,4 +1,5 @@
 # monitoring/views.py - FINAL CORRECTED CODE
+from urllib import request
 from django.contrib.auth import authenticate, login, logout
 from django.middleware.csrf import get_token
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
@@ -23,6 +24,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.contrib.auth.decorators import login_required
 from .discover_device import discover_device # Import the function from the new script file
 
 
@@ -171,6 +173,10 @@ class DeviceInterfaceListView(ListAPIView):
         ).order_by('ifIndex') # Order by interface number
 
 
+
+
+
+
 @csrf_exempt # Allows POST requests from the React frontend without a CSRF token
 @require_http_methods(["POST"])
 def device_discovery_api(request):
@@ -223,13 +229,3 @@ def device_discovery_api(request):
         # Catch any unexpected Python errors during script execution
         print(f"Error during device discovery: {e}")
         return JsonResponse({"status": "error", "message": f"Server processing error: {e}"}, status=500)
-
-# from django.middleware.csrf import get_token
-# from django.http import JsonResponse
-
-# def csrf_token_view(request):
-#     """
-#     Returns the CSRF token for the client to use in subsequent requests.
-#     """
-#     token = get_token(request)
-#     return JsonResponse({'csrfToken': token})
