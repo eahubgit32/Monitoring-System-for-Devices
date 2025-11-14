@@ -14,10 +14,20 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+# network_monitor/urls.py - FINAL CORRECTED CODE
+
 from django.contrib import admin
-from django.urls import path, include
+#========
+from django.urls import path, re_path, include
+from django.views.generic import TemplateView
 from monitoring.admin import custom_admin_site
+
 
 urlpatterns = [
     path('admin/', custom_admin_site.urls),
+    path('api/', include('monitoring.urls')),
+
+    # Catch-all pattern to serve the React frontend
+    re_path(r'^.*', TemplateView.as_view(template_name='index.html')),
 ]
+

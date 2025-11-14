@@ -17,6 +17,9 @@ from cryptography.fernet import Fernet
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Defining temporary directory for React build files
+REACT_BUILD_DIR = os.path.join(BASE_DIR, 'frontend', 'dist')
+
 env = environ.Env()
 # Read the .env file
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
@@ -30,11 +33,22 @@ SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'dev.local', # <--- ADD THIS
+    env('DATABASE_HOST'), # Allows Django to communicate with the database host
+    "*", # Temporary: Allow all hosts during development
+]
 
 
 # Application definition
 
+# network_monitor/settings.py
+
+# network_monitor/settings.py
+
+# THIS LIST IS CORRECT! KEEP IT.
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -42,25 +56,37 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'monitoring',  # MAIN PROJECT CONTAINER
+    'monitoring',
+    'rest_framework',
+    'corsheaders',  # <-- 1. ADD THIS
 ]
 
+# network_monitor/settings.py
+
 MIDDLEWARE = [
+    # 1. Session Middleware MUST come first to handle the cookie
+    'django.contrib.sessions.middleware.SessionMiddleware', 
+    
+    # 2. CORS Middleware must be next
+    'corsheaders.middleware.CorsMiddleware',
+    
+    # 3. Security, Common, and Auth follow
     'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
+    # 'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware', # (Needed for Admin)
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
 ROOT_URLCONF = 'network_monitor.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / "monitoring/templates"],
+
+        'DIRS': [REACT_BUILD_DIR, BASE_DIR / "monitoring/templates"],
+
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -120,7 +146,7 @@ TIME_ZONE = 'Asia/Manila'
 
 USE_I18N = True
 
-# USE_TZ = True
+USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
@@ -128,10 +154,21 @@ USE_I18N = True
 
 STATIC_URL = 'static/'
 
+# Include the entire React build folder as a source for static files
+STATICFILES_DIRS = [
+    REACT_BUILD_DIR,
+]
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# 3. ADD THIS NEW SECTION (at the bottom of the file)
+# This tells Django to trust your React app
+# network_monitor/settings.py
+
+# ... (at the very bottom of the file) ...
 
 # --- Fernet Key for Device credentials encryption ---
 FERNET_KEY = os.getenv('FERNET_KEY')  # first try environment variable
@@ -151,3 +188,57 @@ if not FERNET_KEY:
     os.chmod(key_path, 0o600)  # secure the file
 
 FERNET = Fernet(FERNET_KEY.encode() if isinstance(FERNET_KEY, str) else FERNET_KEY)
+
+
+
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication', 
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated', 
+    ]
+}
+
+# network_monitor/settings.py
+
+# --- FINAL, CORRECT COOKIE/CORS CONFIGURATION ---
+
+TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://dev.local:5173",
+]
+CORS_ALLOWED_ORIGINS = TRUSTED_ORIGINS
+CSRF_TRUSTED_ORIGINS = TRUSTED_ORIGINS
+
+# CRITICAL: These settings allow the cross-port session handshake
+CORS_ALLOW_CREDENTIALS = True
+SESSION_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+FERNET = Fernet(FERNET_KEY.encode() if isinstance(FERNET_KEY, str) else FERNET_KEY)
+
+
+# KEEP THIS BLOCK
+# REST_FRAMEWORK = {
+# '''
+#     'DEFAULT_AUTHENTICATION_CLASSES': (
+#         # Remove SessionAuthentication to stop DRF from enforcing the CSRF check
+#         # 'rest_framework.authentication.TokenAuthentication', # If you use tokens later, uncomment this.
+#     ),
+#     'DEFAULT_PERMISSION_CLASSES': (
+#         'rest_framework.permissions.AllowAny',
+#     )
+# }
+# '''
+#     'DEFAULT_AUTHENTICATION_CLASSES': [
+#         'rest_framework.authentication.SessionAuthentication', 
+#     ],
+#     'DEFAULT_PERMISSION_CLASSES': [
+#         'rest_framework.permissions.IsAuthenticated', 
+#     ]
+# }

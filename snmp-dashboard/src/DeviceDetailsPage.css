@@ -1,0 +1,102 @@
+/* src/DeviceDetailsPage.css - FINAL VERSION */
+
+.details-container {
+  width: 90%;
+  max-width: 900px; /* Widen a bit to fit the table nicely */
+  margin: 30px auto;
+  font-family: Arial, sans-serif;
+  padding: 2rem;
+  
+  /* --- FROSTED GLASS EFFECT (matches dashboard) --- */
+  background: rgba(20, 20, 20, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  border-radius: 12px;
+  color: #eee; /* Default light text for the container */
+}
+
+/* --- "Back" Link Styling --- */
+.details-container a {
+  display: inline-block;
+  text-decoration: none;
+  color: #eee;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 8px 12px;
+  border-radius: 20px; /* Pill shape */
+  font-weight: 600;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.details-container a:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* --- Headers --- */
+.details-container h1 {
+  margin-top: 20px;
+  margin-bottom: 5px;
+  color: #fff;
+}
+.details-container h2 {
+  margin-top: 30px;
+  color: #fff;
+  border-bottom: 1px solid #444; /* Dark separator */
+  padding-bottom: 10px;
+}
+
+/* --- Status Badge (Unchanged, styles are fine) --- */
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #fff;
+  text-transform: capitalize;
+  margin-bottom: 20px;
+}
+.status-up { background-color: #28a745; }
+.status-down { background-color: #dc3545; }
+.status-warning { background-color: #ffc107; }
+
+
+/* --- Metrics Grid --- */
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  
+  /* Dark theme for data boxes */
+  background-color: rgba(255, 255, 255, 0.05); /* Very subtle bg */
+  border: 1px solid #444; /* Dark border */
+  border-radius: 4px;
+}
+
+.detail-item strong {
+  margin-right: 10px;
+  color: #ccc; /* Lighter color for the label */
+  font-weight: 400;
+}
+
+.detail-item span {
+  font-weight: 600;
+  font-size: 1.1em;
+  color: #fff; /* Bright white for the value */
+}
+
+/* On wider screens, show two columns */
+@media (min-width: 600px) {
+  .details-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

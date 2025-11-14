@@ -1,0 +1,107 @@
+#root {
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+
+/* src/App.css */
+/* (You can delete any old Vite styles if you want) */
+
+.dev-toggle {
+  background-color: #fffbe6; /* Light yellow */
+  border: 1px solid #ffe58f;
+  padding: 10px 20px;
+  text-align: center;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+}
+
+.dev-toggle p {
+  margin: 0 0 10px 0;
+}
+
+.dev-toggle button {
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+
+/* src/App.css */
+
+.app-header {
+/* Dark, solid background */
+  background-color: #1e1e1e;
+  color: #eee;
+  padding: 15px 30px;
+  font-family: Arial, sans-serif;
+  
+  /* A
+  subtle border to separate it from the wallpaper */
+  border-bottom: 1px solid #333;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header-content strong {
+  color: #28a745; /* Green accent for the user's name */
+}
+
+.logout-button {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.logout-button:hover {
+  background: #c82333;
+}

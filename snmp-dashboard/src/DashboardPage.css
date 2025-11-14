@@ -1,0 +1,113 @@
+/* src/DashboardPage.css - FINAL VERSION */
+
+.dashboard-container {
+  width: 90%;
+  margin: 30px auto;
+  font-family: Arial, sans-serif;
+  padding: 2rem;
+
+  /* --- FROSTED GLASS EFFECT --- */
+  background: rgba(20, 20, 20, 0.7);
+  backdrop-filter: blur(100px);
+  -webkit-backdrop-filter: blur(100px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  border-radius: 12px;
+}
+
+/* --- DARK MODE SEARCH INPUT --- */
+.search-input {
+  width: 250px; 
+  padding: 8px 12px; 
+  font-size: 14px; 
+  border: 1px solid #555;
+  border-radius: 4px;
+  box-sizing: border-box; 
+  background-color: #222;
+  color: #eee;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #28a745; 
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.5);
+}
+
+.search-input::placeholder {
+  color: #ccc;
+  opacity: 0.7;
+}
+
+/* --- HEADER BAR (holds add button and filters) --- */
+.dashboard-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.add-device-button {
+  display: inline-block;
+  padding: 10px 15px;
+  background-color: #28a745; /* Green */
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* --- FILTER CONTROLS (search, checkbox, apply) --- */
+.filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px; 
+  font-size: 0.95em;
+  white-space: nowrap; 
+}
+
+.filter-controls label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #ccc;
+}
+
+.filter-controls input[type="checkbox"] {
+  width: 16px; 
+  height: 16px;
+}
+
+.apply-filter-button {
+    padding: 8px 12px; 
+    font-size: 14px;  
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+}
+.apply-filter-button:hover {
+    background-color: #0056b3;
+}
+
+/* --- GRADIENT CONTEXT INDICATOR --- */
+.context-indicator {
+  font-size: 0.9em;
+  color: #ccc;
+  text-align: center;
+  margin-top: 10px;
+  margin-bottom: 20px;
+  padding: 8px 12px;
+  
+  background-image: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0) 0%, 
+    rgba(0, 123, 255, 0.1) 50%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  
+  border-radius: 4px;
+  border: none !important;
+  border-left: none !important;
+}

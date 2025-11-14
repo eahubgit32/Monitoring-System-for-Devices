@@ -2,7 +2,6 @@ from django.db import models
 from django.contrib.auth.models import User
 from cryptography.fernet import Fernet
 from django.conf import settings
-
 # Uses Django's built-in User model to represent system users
 # (e.g., admins, operators, or whoever owns/manages a device).
 
@@ -109,7 +108,28 @@ class Device(models.Model):
         if self.snmp_aes_passwd:
             return settings.FERNET.decrypt(self.snmp_aes_passwd).decode()
 
+    def __str__(self):
+        return self.hostname
 
+    # --- Encryption helpers ---
+    def set_snmp_password(self, raw_password: str):
+        "Encrypt and store password."
+        self.snmp_password = settings.FERNET.encrypt(raw_password.encode())
+
+    def get_snmp_password(self):
+        "Decrypt and return password."
+        if self.snmp_password:
+            return settings.FERNET.decrypt(self.snmp_password).decode()
+        return None
+
+    def set_snmp_aes_passwd(self, raw_password: str):
+        "Encrypt and store password."
+        self.snmp_aes_passwd = settings.FERNET.encrypt(raw_password.encode())
+
+    def get_snmp_aes_passwd(self):
+        if self.snmp_aes_passwd:
+            return settings.FERNET.decrypt(self.snmp_aes_passwd).decode()
+        
 # ======================
 # INTERFACE TABLE
 # ======================
@@ -214,3 +234,23 @@ class Threshold(models.Model):
     def __str__(self):
         # Example: "CoreRouter1 - CPU Usage alert"
         return f"{self.device.hostname} - {self.metric.metric_name} alert"
+
+
+# ======================
+# USER PREFERENCE TABLE (NEW)
+# ======================
+class UserPreference(models.Model):
+    # Links preference to the User (one-to-one relationship)
+    # primary_key=True is important for OneToOneField
+    user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True) 
+    
+    # Stores the IDs of the devices the user has selected for their filter
+    # We store it as text and will parse it into an array in React/Django
+    selected_device_ids = models.TextField(default="",blank=True)
+    
+    # Stores the state of the main filter toggle (True/False)
+    is_filter_active = models.BooleanField(default=False)
+
+    def __str__(self):
+        # We must include the username for display
+        return f"Preferences for {self.user.username}"
