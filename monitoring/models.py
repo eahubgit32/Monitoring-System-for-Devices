@@ -2,7 +2,6 @@ from django.db import models
 from django.contrib.auth.models import User
 from cryptography.fernet import Fernet
 from django.conf import settings
-
 # Uses Django's built-in User model to represent system users
 # (e.g., admins, operators, or whoever owns/manages a device).
 
@@ -109,7 +108,28 @@ class Device(models.Model):
         if self.snmp_aes_passwd:
             return settings.FERNET.decrypt(self.snmp_aes_passwd).decode()
 
+    def __str__(self):
+        return self.hostname
 
+    # --- Encryption helpers ---
+    def set_snmp_password(self, raw_password: str):
+        "Encrypt and store password."
+        self.snmp_password = settings.FERNET.encrypt(raw_password.encode())
+
+    def get_snmp_password(self):
+        "Decrypt and return password."
+        if self.snmp_password:
+            return settings.FERNET.decrypt(self.snmp_password).decode()
+        return None
+
+    def set_snmp_aes_passwd(self, raw_password: str):
+        "Encrypt and store password."
+        self.snmp_aes_passwd = settings.FERNET.encrypt(raw_password.encode())
+
+    def get_snmp_aes_passwd(self):
+        if self.snmp_aes_passwd:
+            return settings.FERNET.decrypt(self.snmp_aes_passwd).decode()
+        
 # ======================
 # INTERFACE TABLE
 # ======================

@@ -53,6 +53,13 @@ function LoginPage() {
         {/* --- 3. YOUR EXISTING FORM GOES INSIDE --- */}
         <form className={`login-form ${themeClass}`} onSubmit={handleSubmit}>
           {/* A simpler title for this context */}
+
+          {/* Make sure 'company-logo.png' matches your file in the 'public' folder */}
+          <img 
+            src="/AIRNAV Logo.png" 
+            alt="Company Logo" 
+            className="login-logo" 
+          />
           <h2>Welcome!</h2>
           
           {error && <p className={`error-message ${themeClass}`}>{error}</p>}

@@ -7,12 +7,6 @@ import './DeviceDetailsPage.css';
 // We'll re-use the table styles from the dashboard
 import './DeviceTable.css'; 
 
-// thresholds (CPU/Mem) are unchanged
-const thresholds = {
-  cpu: { warn: 70, crit: 90 },
-  mem: { warn: 70, crit: 90 },
-};
-
 function DeviceDetailsPage() {
   const { deviceId } = useParams();
   

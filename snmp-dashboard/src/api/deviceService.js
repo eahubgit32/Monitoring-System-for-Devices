@@ -71,7 +71,7 @@ export const deviceService = {
     if (includeInactive) {
       url.searchParams.append('include_inactive', 'true');
     }
-
+    console.log("Fetching all devices");
     // 3. Fetch using the URL string
     const response = await fetch(url.toString(), {
       credentials: 'include'

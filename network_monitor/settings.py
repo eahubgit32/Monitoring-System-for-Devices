@@ -38,6 +38,7 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     'dev.local', # <--- ADD THIS
     env('DATABASE_HOST'), # Allows Django to communicate with the database host
+    "*", # Temporary: Allow all hosts during development
 ]
 
 
