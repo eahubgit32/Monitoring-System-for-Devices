@@ -3,9 +3,10 @@
 const API_BASE_URL = 'http://localhost:8000/api';
 
 // --- UTILITY FUNCTIONS ---
-const getCookie = (name) => {
+export const getCookie = (name) => {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
+        // console.log(`Fetching cookie: ${document.cookie}`);
         const cookies = document.cookie.split(';');
         for (let i = 0; i < cookies.length; i++) {
             let cookie = cookies[i].trim();
@@ -15,10 +16,26 @@ const getCookie = (name) => {
             }
         }
     }
+    // console.log(`Cookie fetched for ${name}: ${cookieValue}`);
+    // console.log('All cookies:', document.cookie);
     return cookieValue;
 };
 
-const getAuthHeaders = () => {
+export const setCookie = (name, value, days = 365) => {
+    let expires = "";
+    if (days) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = "; expires=" + date.toUTCString();
+    }
+    
+    // CRITICAL: We need to set the same attributes that Django uses for cross-site
+    // These include Path, SameSite, and Secure.
+    document.cookie = name + "=" + (value || "")  + expires + "; Path=/; SameSite=None; Secure";
+    // console.log(`Manually set cookie: ${name}=${value}`);
+};
+
+export const getAuthHeaders = () => {
     const csrfToken = getCookie('csrftoken');
     if (!csrfToken) {
         throw new Error("CSRF token is missing. Please ensure you are logged in.");
@@ -30,7 +47,7 @@ const getAuthHeaders = () => {
 }
 
 
-async function handleResponse(response) {
+export async function handleResponse(response) {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     const errorDetail = errorData.detail || errorData.non_field_errors || `HTTP Error! Status: ${response.status}`;
@@ -92,6 +109,7 @@ export const deviceService = {
    * Adds a new device to the REAL backend.
    */
   addDevice: async (deviceData) => { // Removed 'owner' from signature
+    console.log("API_SERVICE: Adding new device to REAL API...");
     
     // FIX 4: CRITICAL SECURITY FIX: Remove user_id from the payload.
     // The backend (perform_create) must set the user_id, not the frontend.
@@ -194,11 +212,12 @@ export const deviceService = {
 
   saveFilterPreferences: async (preferenceData) => {
     console.log("API_SERVICE: Saving user preferences...");
-    
+    const authHeaders = getAuthHeaders();
+    // console.log(authHeaders);
     // We send a PATCH request to update the existing preference object
     const response = await fetch(`${API_BASE_URL}/preferences/`, {
       method: 'PATCH',
-      headers: getAuthHeaders(),
+      headers: authHeaders,
       body: JSON.stringify(preferenceData),
       credentials: 'include' 
     });

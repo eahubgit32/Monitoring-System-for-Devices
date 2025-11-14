@@ -1,23 +1,26 @@
 // src/UserContext.jsx
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { handleResponse, getCookie, setCookie } from './api/deviceService';
 
 // This is the new "phone book" for our auth API
 const authService = {
   apiBase: 'http://localhost:8000/api',
 
   // This function handles all API responses
-  handleResponse: async (response) => {
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `HTTP Error! Status: ${response.status}`);
-    }
-    // For 200 OK, return the JSON data
-    // For 204 No Content (like logout), return null
-    return response.status !== 204 ? response.json() : null; 
+  // handleResponse: async (response) => {
+  //   if (!response.ok) {
+  //     const errorData = await response.json().catch(() => ({}));
+  //     throw new Error(errorData.detail || `HTTP Error! Status: ${response.status}`);
+  //   }
+  //   // For 200 OK, return the JSON data
+  //   // For 204 No Content (like logout), return null
+  //   return response.status !== 204 ? response.json() : null; 
+  // },
+  getCsrfToken: () => {
+      return getCookie('csrftoken');
   },
 
-  // This is our NEW login function
   login: async (username, password) => {
     const response = await fetch(`${authService.apiBase}/login/`, {
       method: 'POST',
@@ -26,22 +29,33 @@ const authService = {
       credentials: 'include' 
     });
     
-    // THIS IS THE FIX:
-    // We call handleResponse, but also get the data
-    const data = await authService.handleResponse(response);
-    return data; // Return the user data directly
+    //const data = await authService.handleResponse(response);
+    const data = await handleResponse(response);
+    //console.log("Login successful, user data:", data);
+    const newCsrfToken = data.csrfToken;
+    if (newCsrfToken) {
+        // CRITICAL: Manually update the browser's cookie store with the correct token
+        setCookie('csrftoken', newCsrfToken, 365); 
+    }
+    // IMPORTANT: Remove the csrfToken field from the data object before setting user state
+    delete data.csrfToken;
+    console.log(data)
+    return data;
   },
 
-  // This is our NEW logout function
   logout: async () => {
+    const token = authService.getCsrfToken()
     const response = await fetch(`${authService.apiBase}/logout/`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include' // <-- ADD THIS
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': token, //Necessary to include token
+      },
+      credentials: 'include'
     });
-    return authService.handleResponse(response);
-  }
-// ...
+    //return authService.handleResponse(response);
+    return handleResponse(response);
+  },
 };
 
 // 1. Create the context
@@ -69,16 +83,12 @@ export function UserProvider({ children }) {
     }
   }, [user]);
 
-  // --- THIS IS THE UPDATED LOGIN FUNCTION ---
-// --- THIS IS THE FIXED LOGIN FUNCTION ---
-  const login = async (username, password) => { // <-- 1. Make it async
+// --- LOGIN FUNCTION ---
+  const login = async (username, password) => {
     try {
-      // 2. Await the real API call
+      // Await the real API call
       const userData = await authService.login(username, password);
-      
-      // The data we get back is the REAL user object
       setUser(userData);
-      
       return true; // Return true so the LoginPage navigates
     } catch (error) {
       // If authService.login fails (wrong password), it throws an error
@@ -87,7 +97,7 @@ export function UserProvider({ children }) {
     }
   };
 
-  // --- THIS IS THE UPDATED LOGOUT FUNCTION ---
+  // --- LOGOUT FUNCTION ---
   const logout = async () => {
     await authService.logout();
     setUser(null); // Clear the user from state

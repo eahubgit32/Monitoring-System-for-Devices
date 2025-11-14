@@ -1,6 +1,7 @@
 # monitoring/views.py - FINAL CORRECTED CODE
 from django.contrib.auth import authenticate, login, logout
-from django.views.decorators.csrf import csrf_exempt
+from django.middleware.csrf import get_token
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -78,6 +79,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
 
 # LOGIN VIEW
+@ensure_csrf_cookie
 @api_view(['POST'])
 @permission_classes([AllowAny])
 @authentication_classes([])
@@ -91,11 +93,15 @@ def login_view(request):
 
     if user is not None:
         login(request, user)
+
+        # Manually include token in the response
+        new_csrf_token = get_token(request)
         
         user_data = {
             'id': user.id,
             'username': user.username,
-            'role': 'admin' if user.is_staff and user.is_superuser else 'user' 
+            'role': 'admin' if user.is_staff and user.is_superuser else 'user',
+            'csrfToken': new_csrf_token
         }
         return Response(user_data, status=status.HTTP_200_OK)
     else:
@@ -105,6 +111,7 @@ def login_view(request):
         )
 
 # LOGOUT VIEW
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def logout_view(request):
@@ -217,12 +224,12 @@ def device_discovery_api(request):
         print(f"Error during device discovery: {e}")
         return JsonResponse({"status": "error", "message": f"Server processing error: {e}"}, status=500)
 
-from django.middleware.csrf import get_token
-from django.http import JsonResponse
+# from django.middleware.csrf import get_token
+# from django.http import JsonResponse
 
-def csrf_token_view(request):
-    """
-    Returns the CSRF token for the client to use in subsequent requests.
-    """
-    token = get_token(request)
-    return JsonResponse({'csrfToken': token})
+# def csrf_token_view(request):
+#     """
+#     Returns the CSRF token for the client to use in subsequent requests.
+#     """
+#     token = get_token(request)
+#     return JsonResponse({'csrfToken': token})
