@@ -194,7 +194,7 @@ if len(sys.argv) > 1:
           #SNMP_GET_DAT("10.11.1.1",  "admin", "frqAIRNAV", "frqAIRNAV")
         CALLER = SNMP_GET_DAT(CMD_IP, CMD_USER,CMD_PASS, CMD_PASS_AES, CMD_MODES)
         
-        TIME_DELIVER = datetime.now()
+        TIME_DELIVER = str(datetime.now().time())[:5]
 
         
 
@@ -209,7 +209,7 @@ if len(sys.argv) > 1:
         print(DEV_OWNER + " - PASSWORD:        " + len(CMD_PASS)*"*")
         print(DEV_OWNER + " - AES PASSWORD:    " + len(CMD_PASS_AES)*"*")
       
-        CALLER.db_connect.INSERT_NOW("CRON_TIMESTAP:"+str(TIME_DELIVER), "UP_TIME", 9999)
+        CALLER.db_connect.INSERT_NOW(str(TIME_DELIVER), "UP_TIME", 9999)
 
         # PRINT AND INSERT INTO DATABASE (SYSTEM DESC)
       #  print("---------------------------------------------------------------------------")
