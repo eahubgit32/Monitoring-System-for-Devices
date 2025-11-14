@@ -554,6 +554,24 @@ class InterfaceAdmin(BaseIconAdmin):
     list_filter = ('device',)
     search_fields = ('device__hostname', 'ifName', 'ifDescr', 'ifAlias')
 
+    def get_queryset(self, request):
+        """
+        Filter queryset for non-superusers to only show interfaces
+        belonging to their devices.
+        """
+        # Store the request for BaseIconAdmin's action_buttons
+        self.request = request 
+        
+        # Get the base queryset
+        qs = super().get_queryset(request)
+        
+        # If superuser, show everything
+        if request.user.is_superuser:
+            return qs
+        
+        # If normal user, filter by their devices
+        # The path is interface -> device -> user
+        return qs.filter(device__user=request.user)
 
 class OidMapAdmin(BaseIconAdmin):
     """
