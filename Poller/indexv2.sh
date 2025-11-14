@@ -71,7 +71,7 @@ FUNC_SELECTOR() {
     elif [ "$1" = 1 ]; then
         port_details $2 $3 $4 $5 $6 $7
     else 
-        echo "No Function Exist po!";
+        echo "No Function Exist!";
     fi
 }
 

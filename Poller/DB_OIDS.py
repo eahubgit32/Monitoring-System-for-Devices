@@ -33,32 +33,32 @@ class OIDS:
                     
                     if OIDS['metric_id'] == 1 :                                                 # CPU
                         self.OID_MASTER['CPU'] = OIDS['oid']
-                    elif OIDS['metric_id'] == 2:                                                # USED MEM
+                    if OIDS['metric_id'] == 2:                                                # USED MEM
                          self.OID_MASTER['USED_MEM'] = OIDS['oid']
-                    elif OIDS['metric_id'] == 3:                                                # FREE MEM
+                    if OIDS['metric_id'] == 3:                                                # FREE MEM
                          self.OID_MASTER['FREE_MEM'] = OIDS['oid']
-                    elif OIDS['metric_id'] == 4:                                                # DESC
+                    if OIDS['metric_id'] == 4:                                                # DESC
                          self.OID_MASTER['DESC'] = OIDS['oid']
-                    elif OIDS['metric_id'] == 16:                                               # IP ADD
-                        self.OID_MASTER['IP_ADD'] = OIDS['oid']
-                    elif OIDS['metric_id'] == 6:                                                # ADMIN
+                    if OIDS['metric_id'] == 6:                                                # ADMIN
                          self.OID_MASTER['ADMIN'] = OIDS['oid']
-                    elif OIDS['metric_id'] == 17:                                               # SUBNET MASK
-                         self.OID_MASTER['SMASK'] = OIDS['oid']
-                    elif OIDS['metric_id'] == 8:                                                # OPER
+                    if OIDS['metric_id'] == 8:                                                # OPER
                          self.OID_MASTER['OPER'] = OIDS['oid']
-                    elif OIDS['metric_id'] == 18:                                               # HOSTNAME
-                         self.OID_MASTER['HOSTNAME'] = OIDS['oid']
-                    elif OIDS['metric_id'] == 19:                                               # PORT NAME
-                         self.OID_MASTER['PORT_N'] = OIDS['oid']
-                    elif OIDS['metric_id'] == 20:                                               # PORT TYPE
-                         self.OID_MASTER['PORT_T'] = OIDS['oid']
-                    elif OIDS['metric_id'] == 12:                                               # BW IN
+                    if OIDS['metric_id'] == 12:                                               # BW IN
                         self.OID_MASTER['BW_IN'] = OIDS['oid']
-                    elif OIDS['metric_id'] == 13:                                               # BW OUT
+                    if OIDS['metric_id'] == 13:                                               # BW OUT
                         self.OID_MASTER['BW_OUT'] = OIDS['oid']
-                    else: 
-                        print("ERROR OID NOT VALID:" + OIDS['oid'])
+                    if OIDS['metric_id'] == 16:                                               # IP ADD
+                        self.OID_MASTER['IP_ADD'] = OIDS['oid']
+                    if OIDS['metric_id'] == 17:                                               # SUBNET MASK
+                         self.OID_MASTER['SMASK'] = OIDS['oid']
+                    if OIDS['metric_id'] == 18:                                               # HOSTNAME
+                         self.OID_MASTER['HOSTNAME'] = OIDS['oid']
+                    if OIDS['metric_id'] == 19:                                               # PORT NAME
+                         self.OID_MASTER['PORT_N'] = OIDS['oid']
+                    if OIDS['metric_id'] == 20:                                               # PORT TYPE
+                         self.OID_MASTER['PORT_T'] = OIDS['oid']
+                    # else: 
+                    #     print("ERROR OID NOT VALID:" + OIDS['oid'])
 
         except:
              print(" No Device Detected!")       
@@ -87,7 +87,9 @@ class OIDS:
                     "BW_IN": 12,
                     "BW_OUT": 13, 
 
-                    "TOTAL_PORT": 5
+                    "TOTAL_PORT": 5,
+
+                    "UP_TIME": 11
                 }
 
                 # TRY 
@@ -106,7 +108,8 @@ class OIDS:
                         
                         #print(self.PORT_IDENTITY)
                         
-                        print(IDENTIFIER,"INTEFACE ID : " + str(self.PORT_IDENTITY) + " LOADED ...")
+                        print(IDENTIFIER,"INTEFACE ID : " + str(self.PORT_IDENTITY) + " LOADED ...                                    ", end="\r")
+                    #    print(IDENTIFIER,"INTEFACE ID : " + str(self.PORT_IDENTITY) + " LOADED ...")
                     else:
                         self.PORT_IDENTITY = "NULL"
                     
@@ -117,7 +120,7 @@ class OIDS:
                      # IF THERE ARE SOME ERRORS OR LACK OF INFROMATION IN DATABASE
                      # IT WONT INSERT SOME DATA IN DATABASE
 
-                     print(" ERROR: Lack of information in Database Table")
+                     print(" ERROR: Lack of information in Database Table", end="\r")
                 #print(stat)
 
        # finally:

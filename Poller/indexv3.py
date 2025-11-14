@@ -58,7 +58,7 @@ class SNMP_GET_DAT:
             "1.3.6.1.2.1.1.5.0   ",                #HOST                   5
 
 
-            "1.3.6.1.2.1.1.1.0",                   #DESCRIPTION            6
+            ".1.3.6.1.2.1.1.1.0",                   #DESCRIPTION            6
 
             
             #---------------------------------------------------------------------------------------------
@@ -77,28 +77,25 @@ class SNMP_GET_DAT:
 
         # CONNECT TO DATABASE
         self.db_connect = dbs.OIDS("192.168.33.1", "lemon", "frqAIRNAV", "snmp_monitoring", self.priv_ip)
-        
         try:
             # OIDS LIST 
-            print("---------------------------------------------------------------------------")
-            
-            print("CPU:                 " + self.db_connect.OID_MASTER['CPU'])
-            print("USED MEMORY:         " + self.db_connect.OID_MASTER['USED_MEM'])        
-            print("FREE MEMORY:         " + self.db_connect.OID_MASTER['FREE_MEM'])        
+            print(" OID ARE AVAILABLE AT " + self.priv_ip + " \n" )
+            # print("CPU:                 " + self.db_connect.OID_MASTER['CPU'])
+            # print("USED MEMORY:         " + self.db_connect.OID_MASTER['USED_MEM'])        
+            # print("FREE MEMORY:         " + self.db_connect.OID_MASTER['FREE_MEM'])        
 
-            print("IP ADDRESS:          " + self.db_connect.OID_MASTER['IP_ADD'])        
-            print("SUBNET MASK:         " + self.db_connect.OID_MASTER['SMASK'])        
-            print("HOSTNAME:            " + self.db_connect.OID_MASTER['HOSTNAME'])        
+            # print("IP ADDRESS:          " + self.db_connect.OID_MASTER['IP_ADD'])        
+            # print("SUBNET MASK:         " + self.db_connect.OID_MASTER['SMASK'])        
+            # print("HOSTNAME:            " + self.db_connect.OID_MASTER['HOSTNAME'])        
 
-            print("DESCRIPTION:         " + self.db_connect.OID_MASTER['DESC'])        
+            # print("DESCRIPTION:         " + self.db_connect.OID_MASTER['DESC'])        
 
-            print("PORTNAMES:           " + self.db_connect.OID_MASTER['PORT_N'])        
-            print("PORT TYPE:           " + self.db_connect.OID_MASTER['PORT_T'])        
-            print("ADMIN STATUS:        " + self.db_connect.OID_MASTER['ADMIN'])        
-            print("OPERATIONAL STATUS:  " + self.db_connect.OID_MASTER['OPER'])        
-            print("BANDWIDTH IN:        " + self.db_connect.OID_MASTER['BW_IN'])        
-            print("BANDWIDTH OUT:       " + self.db_connect.OID_MASTER['BW_OUT'])        
-            print("---------------------------------------------------------------------------")
+            # print("PORTNAMES:           " + self.db_connect.OID_MASTER['PORT_N'])        
+            # print("PORT TYPE:           " + self.db_connect.OID_MASTER['PORT_T'])        
+            # print("ADMIN STATUS:        " + self.db_connect.OID_MASTER['ADMIN'])        
+            # print("OPERATIONAL STATUS:  " + self.db_connect.OID_MASTER['OPER'])        
+            # print("BANDWIDTH IN:        " + self.db_connect.OID_MASTER['BW_IN'])        
+            # print("BANDWIDTH OUT:       " + self.db_connect.OID_MASTER['BW_OUT'])        
             
 
             # IDENTIFIER FOR DICTIONARY
@@ -113,7 +110,7 @@ class SNMP_GET_DAT:
         except:
             # SENT A MESSAGE THAT THIS IP HAS MISSING OIDs AT DATABASE OID TABLE 
             print("\nWARNING: Some OIDs are missing at IP: "+str(self.priv_ip)+". Please complete them for the device.\n")        
-
+            
 
         # GET THE TOTAL PORT FROM INDEXV2.SH
         self.TOTAL_PORTS =    int(self.BASH_Proccessor(1, self.priv_user, self.priv_pass, self.priv_passAES, self.priv_ip, self.D_ARR[7]).decode('utf-8'))   
@@ -133,9 +130,9 @@ class SNMP_GET_DAT:
             "CPU": int(self.SYSDESC_ARR[0]),                            # CPU
             "USED_MEM": int(self.SYSDESC_ARR[1]),                       # USED MEMORY
             "FREE_MEM": int(self.SYSDESC_ARR[2]),                       # FREE MEMORY
-            "IP_ADD": str(self.SYSDESC_ARR[3]).replace("\n",""),        # IP ADDRESS
-            "MASK": str(self.SYSDESC_ARR[4]).replace("\n",""),          # SUBNET MASK
-            "HOST": str(self.SYSDESC_ARR[5]).replace("\n",""),          # HOSTNAME
+            "IP_ADD": str(self.SYSDESC_ARR[3]).replace("\n"," "),        # IP ADDRESS
+            "MASK": str(self.SYSDESC_ARR[4]).replace("\n"," "),          # SUBNET MASK
+            "HOST": str(self.SYSDESC_ARR[5]).replace("\n"," "),          # HOSTNAME
             "DESC": str(self.SYSDESC_ARR[6]).replace("\n",""),          # COMPLETE DESCRIPTION
             "TOTAL_PORT": int(self.TOTAL_PORTS)                         # TOTAL NUMBER OF INTERFACE
             #"TIMESTAMP": str(datetime.now())
@@ -176,8 +173,8 @@ class SNMP_GET_DAT:
             for HANDLER in range(7, 13):
                 PORT_ = str(self.BASH_Proccessor(1, self.priv_user, self.priv_pass, self.priv_passAES, self.priv_ip, str(self.D_ARR[HANDLER]), str(PORTS_POS)).decode('utf-8')).replace("\n", "")
                 self.dat[1][self.dat_int_pointer_name[HANDLER-7]].append(PORT_)
-            print(str(self.SYSDESC_ARR[5]).replace("\n","")  +  ": Total Fetch Data " + str( int(float(float(PORTS_POS) / float(self.TOTAL_PORTS)) * 100) ) + " " + str() + " %")#, end="\r")
-
+            print(str(self.SYSDESC_ARR[5]).replace("\n","")  +  ": Total Fetch Data " + str( int(float(float(PORTS_POS) / float(self.TOTAL_PORTS)) * 100) ) + " " + str() + " %                                      ", end="\r")
+            
     #  GETTING FOF THE BASIC SYSTEM DESC. FROM BASH SCRIPT
     def SIMPLE_DESC(self):
         for i in range(7):
@@ -196,15 +193,24 @@ if len(sys.argv) > 1:
         CMD_MODES       = int(sys.argv[5])         
           #SNMP_GET_DAT("10.11.1.1",  "admin", "frqAIRNAV", "frqAIRNAV")
         CALLER = SNMP_GET_DAT(CMD_IP, CMD_USER,CMD_PASS, CMD_PASS_AES, CMD_MODES)
+        
+        TIME_DELIVER = str(datetime.now().time())[:5]
+
+        
 
         DEV_OWNER = str(CALLER.dat[0]["HOST"])
+        print("\n\n")
 
         print(DEV_OWNER + " - Connection:")
+        print(DEV_OWNER + " - UP TIME:         " + str(TIME_DELIVER))
+
         print(DEV_OWNER + " - IP:              " + CMD_IP)
         print(DEV_OWNER + " - USERNAME:        " + CMD_USER)
-        print(DEV_OWNER + " - PASSWORD:        " + CMD_PASS)
-        print(DEV_OWNER + " - AES PASSWORD:    " + CMD_PASS_AES)
+        print(DEV_OWNER + " - PASSWORD:        " + len(CMD_PASS)*"*")
+        print(DEV_OWNER + " - AES PASSWORD:    " + len(CMD_PASS_AES)*"*")
       
+        CALLER.db_connect.INSERT_NOW(str(TIME_DELIVER), "UP_TIME", 9999)
+
         # PRINT AND INSERT INTO DATABASE (SYSTEM DESC)
       #  print("---------------------------------------------------------------------------")
         print(DEV_OWNER + " - CPU Usage:       " + str(CALLER.dat[0]["CPU"]))
@@ -230,11 +236,11 @@ if len(sys.argv) > 1:
         
         print(DEV_OWNER + " - Description:     " + str(CALLER.dat[0]["DESC"]))
         CALLER.db_connect.INSERT_NOW(CALLER.dat[0]["DESC"], "DESC", 9999)
-        
+        print("\n\n")
      #   print("---------------------------------------------------------------------------")
         
         # PRINT AND INSERT INTO DATABASE (INTERFACES DATA)
-        print(DEV_OWNER + " - INTERFACES: ")
+        #print(DEV_OWNER + " - INTERFACES: ")
         if CMD_MODES == 1:
             for x in range(CALLER.TOTAL_PORTS):
                 interface_name      = CALLER.dat[1]["INT_NAME"][x]
@@ -250,7 +256,7 @@ if len(sys.argv) > 1:
                 CALLER.db_connect.INSERT_NOW(interface_BW_IN, "BW_IN", x)
                 CALLER.db_connect.INSERT_NOW(interface_BW_OUT, "BW_OUT", x)
                 
-
+       
                 #print(DEV_OWNER + " - " + interface_name, interface_type, interface_admin, interface_OPER, interface_BW_IN, interface_BW_OUT, " -- PORT : " + str(x))
          #   print("---------------------------------------------------------------------------")
 else:

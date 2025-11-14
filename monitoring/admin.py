@@ -100,6 +100,10 @@ from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from django import forms
 from django.utils import timezone
+from django.core.exceptions import PermissionDenied
+from django.contrib import messages
+from django.template.response import TemplateResponse
+from django.shortcuts import get_object_or_404, redirect
 from .models import (
     Brand, DeviceType, Metric, DeviceModel,
     Device, Interface, OidMap, History, Threshold
@@ -115,14 +119,11 @@ class BaseIconAdmin(admin.ModelAdmin):
     - Add 'action_buttons' column for Edit/Delete links.
     - Disable default actions dropdown (delete selected).
     - Intended to be extended by other admins.
+    - Respects Django permissions.
     """
     actions = None  # Remove "delete selected"
 
     def action_buttons(self, obj):
-        """
-        Render Edit/Delete links for a model instance.
-        These links appear in the list_display column.
-        """
         change_url = reverse(
             f'admin:{obj._meta.app_label}_{obj._meta.model_name}_change',
             args=[obj.pk]
@@ -131,13 +132,32 @@ class BaseIconAdmin(admin.ModelAdmin):
             f'admin:{obj._meta.app_label}_{obj._meta.model_name}_delete',
             args=[obj.pk]
         )
-        return format_html(
-            '<a href="{}">✏️ Edit</a> | <a href="{}">❌ Delete</a>',
-            change_url, delete_url
-        )
+        buttons = []
+        if self.has_change_permission(self.request, obj):
+            buttons.append(f'<a href="{change_url}">✏️ Edit</a>')
+        if self.has_delete_permission(self.request, obj):
+            buttons.append(f'<a href="{delete_url}">❌ Delete</a>')
+        return format_html(" | ".join(buttons))
 
     action_buttons.short_description = 'Actions'
 
+    # Override get_queryset to store request for permission checks
+    def get_queryset(self, request):
+        """Store request for use in action_buttons"""
+        self.request = request
+        return super().get_queryset(request)
+
+    # Permission to show model in sidebar
+    def has_module_permission(self, request):
+        """
+        Show the model in the sidebar only if the user has at least
+        one permission (view/add/change/delete)
+        """
+        opts = self.model._meta
+        return request.user.has_perm(f'{opts.app_label}.view_{opts.model_name}') or \
+               request.user.has_perm(f'{opts.app_label}.add_{opts.model_name}') or \
+               request.user.has_perm(f'{opts.app_label}.change_{opts.model_name}') or \
+               request.user.has_perm(f'{opts.app_label}.delete_{opts.model_name}')
 
 # ----------------------------------------------------
 # Custom AdminSite for grouped sidebar
@@ -230,12 +250,12 @@ class BrandAdmin(BaseIconAdmin):
     list_display = ('brand_name', 'action_buttons')
     search_fields = ('brand_name',)
     
-def save_model(self, request, obj, form, change):
-        """Prevent creating duplicate Brand names."""
-        if not change:
-            if Brand.objects.filter(brand_name=obj.brand_name).exists():
-                raise ValidationError("A Brand with this name already exists.")
-        super().save_model(request, obj, form, change)
+    def save_model(self, request, obj, form, change):
+            """Prevent creating duplicate Brand names."""
+            if not change:
+                if Brand.objects.filter(brand_name=obj.brand_name).exists():
+                    raise ValidationError("A Brand with this name already exists.")
+            super().save_model(request, obj, form, change)
 
 class DeviceTypeAdmin(BaseIconAdmin):
     """
@@ -259,17 +279,85 @@ class MetricAdmin(BaseIconAdmin):
     list_filter = ('unit',)
     search_fields = ('metric_name', 'unit')
 
-def save_model(self, request, obj, form, change):
-        """Prevent creating duplicate Metric names."""
-        if not change:
-            if Metric.objects.filter(metric_name=obj.metric_name).exists():
-                raise ValidationError("A Metric with this name already exists.")
-        super().save_model(request, obj, form, change)
+    def save_model(self, request, obj, form, change):
+            """Prevent creating duplicate Metric names."""
+            if not change:
+                if Metric.objects.filter(metric_name=obj.metric_name).exists():
+                    raise ValidationError("A Metric with this name already exists.")
+            super().save_model(request, obj, form, change)
 
 custom_admin_site.register(Brand, BrandAdmin)
 custom_admin_site.register(DeviceType, DeviceTypeAdmin)
 custom_admin_site.register(Metric, MetricAdmin)
 
+# ----------------------------------------------------
+# Custom List Filter for User-Specific Devices
+# ----------------------------------------------------
+class UserDeviceFilter(admin.SimpleListFilter):
+    """
+    A custom list filter that, for non-superusers, only
+    shows Devices that belong to them.
+    """
+    title = _('device')         # The title of the filter
+    parameter_name = 'device'  # The URL parameter (e.g., ?device=1)
+
+    def lookups(self, request, model_admin):
+        """
+        Returns a list of tuples (value, label) for the filter options.
+        """
+        if request.user.is_superuser:
+            # Superusers see all devices
+            devices = Device.objects.all()
+        else:
+            # Normal users see only their own devices
+            devices = Device.objects.filter(user=request.user)
+            
+        # Return the (id, hostname) pairs for the dropdown
+        return [(d.id, d.hostname) for d in devices]
+
+    def queryset(self, request, queryset):
+        """
+        Applies this filter to the main list.
+        """
+        if self.value():
+            # If a value is selected, filter the interface list by it
+            return queryset.filter(device__id=self.value())
+        return queryset
+
+# ----------------------------------------------------
+# Custom List Filter for User-Specific Device Models
+# ----------------------------------------------------
+class UserSpecificModelFilter(admin.SimpleListFilter):
+    """
+    A custom list filter that, for non-superusers, only
+    shows Device Models that are in their device list.
+    """
+    title = _('model')
+    parameter_name = 'model' # This must match the field name
+
+    def lookups(self, request, model_admin):
+        """
+        Returns a list of tuples (value, label) for the filter options.
+        """
+        # Get the queryset that's already filtered by DeviceAdmin.get_queryset()
+        queryset = model_admin.get_queryset(request)
+        
+        # Get the unique IDs of the models from this filtered device list
+        model_ids = queryset.values_list('model_id', flat=True).distinct()
+        
+        # Fetch the actual DeviceModel objects
+        models = DeviceModel.objects.filter(id__in=model_ids)
+            
+        return [(m.id, m.model_name) for m in models]
+
+    def queryset(self, request, queryset):
+        """
+        Applies this filter to the main list.
+        """
+        if self.value():
+            # Filter the device list by the selected model ID
+            return queryset.filter(model__id=self.value())
+        return queryset
 
 # --- Custom ModelForm for Device ---
 class DeviceAdminForm(forms.ModelForm):
@@ -331,6 +419,21 @@ class DeviceAdminForm(forms.ModelForm):
             instance.save()
         return instance
 
+    # Validate that passwords are provided
+    def clean(self):
+        cleaned_data = super().clean()
+        username = cleaned_data.get('username')
+        auth_pwd = cleaned_data.get('snmp_auth_password')
+        priv_pwd = cleaned_data.get('snmp_priv_password')
+
+        if not username:
+            raise forms.ValidationError("SNMP Username is required.")
+        if not auth_pwd:
+            raise forms.ValidationError("SNMP Auth Password is required.")
+        if not priv_pwd:
+            raise forms.ValidationError("SNMP AES Password is required.")
+
+        return cleaned_data
 
 # ----------------------------------------------------
 # DeviceAdmin with per-user permissions
@@ -348,7 +451,7 @@ class DeviceAdmin(admin.ModelAdmin):
     """
     list_display = ('hostname', 'ip_address', 'model', 'user', 'action_buttons')
     list_filter = ('model', 'user')
-    search_fields = ('hostname', 'ip_address')
+    search_fields = ('hostname', 'ip_address', 'model__model_name', 'user__username')
     actions = None  # remove "delete selected"
 
     form = DeviceAdminForm # use custom form with password handling
@@ -356,6 +459,8 @@ class DeviceAdmin(admin.ModelAdmin):
     fields = ('hostname', 'ip_address', 'subnet_mask', 'model', 'user', 'username', 'snmp_auth_password',
         'snmp_priv_password') 
 
+    # Tells django admin to use custom template for delete confirmation
+    delete_confirmation_template = "admin/monitoring/device/delete_confirmation.html"
 
     def get_fields(self, request, obj=None):
         """
@@ -393,29 +498,15 @@ class DeviceAdmin(admin.ModelAdmin):
                 raise ValidationError("A device with this hostname and IP already exists.")
         super().save_model(request, obj, form, change)
 
-    # Validate that passwords are provided
-    def clean(self):
-        cleaned_data = super().clean()
-        username = cleaned_data.get('username')
-        auth_pwd = cleaned_data.get('snmp_auth_password')
-        priv_pwd = cleaned_data.get('snmp_priv_password')
-
-        if not username:
-            raise forms.ValidationError("SNMP Username is required.")
-        if not auth_pwd:
-            raise forms.ValidationError("SNMP Auth Password is required.")
-        if not priv_pwd:
-            raise forms.ValidationError("SNMP AES Password is required.")
-
-        return cleaned_data
-
     # Queryset filtering based on user
     def get_queryset(self, request):
         """Filter queryset for non-superusers to only show their devices."""
+        self.request = request  # store the request so action_buttons() can access it
         qs = super().get_queryset(request)
         if request.user.is_superuser:
             return qs
         return qs.filter(user=request.user)
+
 
     # Permission overrides
     def has_change_permission(self, request, obj=None):
@@ -425,28 +516,124 @@ class DeviceAdmin(admin.ModelAdmin):
         return request.user.is_superuser or obj.user == request.user
 
     def has_delete_permission(self, request, obj=None):
-        """Allow delete only for owner or superuser."""
-        if obj is None:
-            return True
-        return request.user.is_superuser or obj.user == request.user
+        """
+        Allow deletion only if:
+        - user has the 'delete_device' permission, and
+        - (optionally) the device belongs to the user, or user is superuser
+        """
+        if not request.user.has_perm('monitoring.delete_device'):
+            return False
+
+        if obj is not None:
+            # If the device has a user field, enforce ownership rule
+            return request.user.is_superuser or obj.user == request.user
+
+        # Default (changelist page): allow view but no mass delete
+        return True
+    
+    def get_model_perms(self, request):
+        """
+        Control model visibility and button availability.
+        If user lacks delete permission, remove the 'delete' button.            
+        """
+        perms = super().get_model_perms(request)
+        if not request.user.has_perm('monitoring.delete_device'):
+            perms['delete'] = False
+        return perms
+    
+    # CUSTOM DELETE_VIEW METHOD (This replaces the default view)
+    def delete_view(self, request, object_id, extra_context=None): 
+        """
+        Overrides the default delete_view to prevent pre-fetching all
+        related objects, which is a major performance bottleneck 
+        (taking too much time to load the delete confirmation page)
+
+        This view *will* call self.has_delete_permission(), respecting
+        all the custom logic defined above.
+        """
+        
+        # Get the object to be deleted
+        obj = get_object_or_404(self.model, pk=object_id)
+        
+        # Check permissions using YOUR existing method
+        if not self.has_delete_permission(request, obj):
+            raise PermissionDenied
+
+        if request.method == 'POST':
+            # This is the user clicking 'Yes, I'm sure'
+            obj.delete()
+            self.message_user(request, _(f'The device "{obj}" was deleted successfully.'), messages.SUCCESS)
+            
+            # Redirect back to the changelist
+            return redirect(reverse(f'admin:{self.opts.app_label}_{self.opts.model_name}_changelist'))
+
+        # This is the GET request (showing the confirmation page)
+        
+        # Get the fast counts
+        history_count = obj.history_set.count() # Use your related_name
+
+        # Create the summary dictionary for our template
+        summary = {
+            'Device': 1,
+            'History': history_count,
+            # Add other related models here if needed
+        }
+        
+        # Build the context for our custom template
+        context = {
+            **self.admin_site.each_context(request),
+            'title': _('Are you sure?'),
+            'object': obj,
+            'object_name': str(obj),
+            'opts': self.model._meta,
+            'app_label': self.model._meta.app_label,
+            'summary': summary, # Pass our custom summary
+            'has_permission': True,
+            **(extra_context or {}),
+        }
+
+        return TemplateResponse(request, self.delete_confirmation_template, context)
+        
 
     # Action buttons column
     def action_buttons(self, obj):
-        """Render Edit/Delete buttons for each device row."""
+        """Render Edit/Delete buttons for each device row, respecting user permissions."""
+        user = self.request.user  # store request for permission check
         change_url = reverse(
             f'admin:{obj._meta.app_label}_{obj._meta.model_name}_change',
             args=[obj.pk]
         )
-        delete_url = reverse(
-            f'admin:{obj._meta.app_label}_{obj._meta.model_name}_delete',
-            args=[obj.pk]
-        )
-        return format_html(
-            '<a href="{}">✏️ Edit</a> | <a href="{}">❌ Delete</a>',
-            change_url, delete_url
-        )
+
+        buttons = [f'<a href="{change_url}">✏️ Edit</a>']
+
+        # Only show delete button if user has permission
+        if user.has_perm('monitoring.delete_device') and (user.is_superuser or obj.user == user):
+            delete_url = reverse(
+                f'admin:{obj._meta.app_label}_{obj._meta.model_name}_delete',
+                args=[obj.pk]
+            )
+            buttons.append(f'<a href="{delete_url}">❌ Delete</a>')
+
+        return format_html(' | '.join(buttons))
+
 
     action_buttons.short_description = 'Actions'
+
+    # This method overrides the default list_filter
+    def get_list_filter(self, request):
+        """
+        Returns a custom list of filters based on user type.
+        - Superusers see all model and user filters.
+        - Normal users see a model filter (limited to their devices)
+          and no user filter (since it's redundant).
+        """
+        if request.user.is_superuser:
+            # Superuser sees the default filters
+            return ('model', 'user')
+        else:
+            # Normal user sees our custom model filter
+            # and the 'user' filter is hidden.
+            return (UserSpecificModelFilter,)
 
 
 # Register Device with custom admin site
@@ -462,8 +649,10 @@ class HistoryAdmin(admin.ModelAdmin):
     Read-only view: no add/change/delete allowed.
     """
     list_display = ('timestamp', 'device', 'metric', 'interface', 'value')
-    list_filter = ('timestamp', 'device', 'metric')
+    list_filter = ('timestamp', UserDeviceFilter, 'metric')
     search_fields = ('device__hostname', 'metric__metric_name')
+
+    actions = None  # remove "delete selected"
 
     def has_add_permission(self, request):
         return False
@@ -472,7 +661,16 @@ class HistoryAdmin(admin.ModelAdmin):
         return False
 
     def has_delete_permission(self, request, obj=None):
-        return False
+        if obj is None:
+            # No object specified → user is viewing changelist → never allow bulk delete
+            return False
+        # Allow deletion only during cascade delete (Device removal)
+        if hasattr(obj, "device") and hasattr(obj.device, "user"):
+            # Allow only if superuser or owner of the Device
+            return request.user.is_superuser or obj.device.user == request.user
+
+        # Fallback: allow only superuser if no linked device
+        return request.user.is_superuser
 
     def local_timestamp(self, obj):
         # Converts UTC timestamp to your TIME_ZONE
@@ -501,23 +699,91 @@ class DeviceModelAdmin(BaseIconAdmin):
     """
     list_display = ('model_name', 'brand', 'type', 'action_buttons')
     list_filter = ('brand', 'type')
-    search_fields = ('model_name', 'brand', 'type')
+    search_fields = ('model_name', 'brand__brand_name', 'type__type_name')
     
-def save_model(self, request, obj, form, change):
-        """Prevent creating duplicate DeviceModel names."""
-        if not change:
-            if DeviceModel.objects.filter(model_name=obj.model_name).exists():
-                raise ValidationError("A Device Model with this name already exists.")
-        super().save_model(request, obj, form, change)
+    def save_model(self, request, obj, form, change):
+            """Prevent creating duplicate DeviceModel names."""
+            if not change:
+                if DeviceModel.objects.filter(model_name=obj.model_name).exists():
+                    raise ValidationError("A Device Model with this name already exists.")
+            super().save_model(request, obj, form, change)
 
 class InterfaceAdmin(BaseIconAdmin):
     """
     Admin for Interface.
     """
     list_display = ('device', 'ifIndex', 'ifName', 'ifDescr', 'ifAlias', 'action_buttons')
-    list_filter = ('device',)
+    list_filter = (UserDeviceFilter,)
     search_fields = ('device__hostname', 'ifName', 'ifDescr', 'ifAlias')
 
+    delete_confirmation_template = "admin/monitoring/interface/delete_confirmation.html"
+
+    def get_queryset(self, request):
+        """
+        Filter queryset for non-superusers to only show interfaces
+        belonging to their devices.
+        """
+        # Store the request for BaseIconAdmin's action_buttons
+        self.request = request 
+        
+        # Get the base queryset
+        qs = super().get_queryset(request)
+        
+        # If superuser, show everything
+        if request.user.is_superuser:
+            return qs
+        
+        # If normal user, filter by their devices
+        # The path is interface -> device -> user
+        return qs.filter(device__user=request.user)
+    
+    def delete_view(self, request, object_id, extra_context=None): 
+        """
+        Overrides the default delete_view to prevent pre-fetching all
+        related objects, which is a major performance bottleneck.
+        """
+        
+        # Get the object to be deleted
+        obj = get_object_or_404(self.model, pk=object_id)
+        
+        # Check permissions using existing method
+        if not self.has_delete_permission(request, obj):
+            raise PermissionDenied
+
+        if request.method == 'POST':
+            # This is the user clicking 'Yes, I'm sure'
+            obj.delete()
+            self.message_user(request, _(f'The interface "{obj}" was deleted successfully.'), messages.SUCCESS)
+            
+            # Redirect back to the changelist
+            return redirect(reverse(f'admin:{self.opts.app_label}_{self.opts.model_name}_changelist'))
+
+        # This is the GET request (showing the confirmation page)
+        # Get the fast counts for related objects
+        history_count = obj.history_set.count()
+        threshold_count = obj.threshold_set.count()
+
+        # Create the summary dictionary for template
+        summary = {
+            'Interface': 1,
+            'History': history_count,
+            'Thresholds': threshold_count,
+        }
+        
+        # Build the context for custom template
+        context = {
+            **self.admin_site.each_context(request),
+            'title': _('Are you sure?'),
+            'object': obj,
+            'object_name': str(obj),
+            'opts': self.model._meta,
+            'app_label': self.model._meta.app_label,
+            'summary': summary, # Pass custom summary
+            'has_permission': True,
+            **(extra_context or {}),
+        }
+
+        return TemplateResponse(request, self.delete_confirmation_template, context)
 
 class OidMapAdmin(BaseIconAdmin):
     """
@@ -525,7 +791,7 @@ class OidMapAdmin(BaseIconAdmin):
     """
     list_display = ('model', 'metric', 'oid', 'description', 'action_buttons')
     list_filter = ('model', 'metric', 'oid')
-    search_fields = ('model', 'metric', 'oid')
+    search_fields = ('model__model_name', 'metric__metric_name', 'oid')
 
 
 class ThresholdAdmin(BaseIconAdmin):
@@ -533,8 +799,27 @@ class ThresholdAdmin(BaseIconAdmin):
     Admin for Threshold rules.
     """
     list_display = ('device', 'metric', 'interface', 'condition', 'value', 'alert_level', 'action_buttons')
-    list_filter = ('device', 'metric', 'interface', 'condition', 'value', 'alert_level')
-    search_fields = ('device', 'metric', 'interface', 'condition', 'value', 'alert_level')
+    list_filter = (UserDeviceFilter, 'metric', 'interface', 'condition', 'value', 'alert_level')
+    search_fields = ('device__hostname', 'metric__metric_name', 'interface__ifName', 'interface__ifDescr', 'interface__ifAlias', 'condition', 'value', 'alert_level')
+
+    def get_queryset(self, request):
+        """
+        Filter queryset for non-superusers to only show thresholds
+        belonging to their devices.
+        """
+        # Store the request for BaseIconAdmin's action_buttons
+        self.request = request 
+        
+        # Get the base queryset
+        qs = super().get_queryset(request)
+        
+        # If superuser, show everything
+        if request.user.is_superuser:
+            return qs
+        
+        # If normal user, filter by their devices
+        # The path is threshold -> device -> user
+        return qs.filter(device__user=request.user)
 
 custom_admin_site.register(DeviceModel, DeviceModelAdmin)
 custom_admin_site.register(Interface, InterfaceAdmin)

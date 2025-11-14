@@ -1,0 +1,52 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    /* Custom CSS class for the "Cancel" button.
+          Used !important to force these styles to override
+          admin theme's default styles.
+        */
+    .cancel-button-override {
+        background: #6c757d !important;
+        border-color: #6c757d !important;
+        color: #ffffff !important;
+        padding: 8px 12px !important; /* This centers the text */
+    }
+    
+    /* This handles the hover color */
+    .cancel-button-override:hover {
+        background: #5a6268 !important; /* A darker gray */
+        border-color: #5a6268 !important;
+    }
+</style>
+{% endblock %}
+
+
+{% block submit_buttons_bottom %}
+    <div class="submit-row">
+        
+        <input type="submit" value="{% trans 'Save' %}" class="default" name="_save">
+        
+        <input type="submit" value="{% trans 'Save and add another' %}" name="_addanother" class="button">
+        
+        <input type="submit" value="{% trans 'Save and continue editing' %}" name="_continue" class="button">
+        
+        {% if original %}
+            <a href="../../" class="button cancel-button-override">
+                {% trans 'CANCEL' %}
+            </a>
+        {% else %}
+            <a href="../" class="button cancel-button-override">
+               {% trans 'CANCEL' %}
+            </a>
+        {% endif %}
+        
+        {% if original %}
+            {% url opts.app_label|add:'_'|add:opts.model_name|add:'_delete' original.pk|admin_urlquote as delete_url %}
+            <a href="{{ delete_url }}" class="deletelink">{% trans 'Delete' %}</a>
+        {% endif %}
+
+    </div>
+{% endblock %}
