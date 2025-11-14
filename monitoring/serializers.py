@@ -6,7 +6,7 @@ import logging
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from django.db.models import Max, F 
-from .models import Device, DeviceModel, Metric, UserPreference, Threshold # Import Threshold
+#from .models import Device, DeviceModel, Metric, UserPreference, Threshold # Import Threshold
 from datetime import timedelta               # <--- ADD THIS
 from django.utils import timezone
 from .models import Device, DeviceModel, Metric, UserPreference, Threshold, Interface
