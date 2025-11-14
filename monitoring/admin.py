@@ -636,6 +636,8 @@ class InterfaceAdmin(BaseIconAdmin):
     list_filter = (UserDeviceFilter,)
     search_fields = ('device__hostname', 'ifName', 'ifDescr', 'ifAlias')
 
+    delete_confirmation_template = "admin/monitoring/interface/delete_confirmation.html"
+
     def get_queryset(self, request):
         """
         Filter queryset for non-superusers to only show interfaces
@@ -654,6 +656,54 @@ class InterfaceAdmin(BaseIconAdmin):
         # If normal user, filter by their devices
         # The path is interface -> device -> user
         return qs.filter(device__user=request.user)
+    
+    def delete_view(self, request, object_id, extra_context=None): 
+        """
+        Overrides the default delete_view to prevent pre-fetching all
+        related objects, which is a major performance bottleneck.
+        """
+        
+        # Get the object to be deleted
+        obj = get_object_or_404(self.model, pk=object_id)
+        
+        # Check permissions using existing method
+        if not self.has_delete_permission(request, obj):
+            raise PermissionDenied
+
+        if request.method == 'POST':
+            # This is the user clicking 'Yes, I'm sure'
+            obj.delete()
+            self.message_user(request, _(f'The interface "{obj}" was deleted successfully.'), messages.SUCCESS)
+            
+            # Redirect back to the changelist
+            return redirect(reverse(f'admin:{self.opts.app_label}_{self.opts.model_name}_changelist'))
+
+        # This is the GET request (showing the confirmation page)
+        # Get the fast counts for related objects
+        history_count = obj.history_set.count()
+        threshold_count = obj.threshold_set.count()
+
+        # Create the summary dictionary for template
+        summary = {
+            'Interface': 1,
+            'History': history_count,
+            'Thresholds': threshold_count,
+        }
+        
+        # Build the context for custom template
+        context = {
+            **self.admin_site.each_context(request),
+            'title': _('Are you sure?'),
+            'object': obj,
+            'object_name': str(obj),
+            'opts': self.model._meta,
+            'app_label': self.model._meta.app_label,
+            'summary': summary, # Pass custom summary
+            'has_permission': True,
+            **(extra_context or {}),
+        }
+
+        return TemplateResponse(request, self.delete_confirmation_template, context)
 
 class OidMapAdmin(BaseIconAdmin):
     """

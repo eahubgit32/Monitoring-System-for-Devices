@@ -5,7 +5,7 @@
 {{ block.super }}
 <style>
     /*
-        Apply consistent padding to BOTH buttons
+      Apply consistent padding to BOTH buttons
     */
     form input[type="submit"].default,
     form a.button.cancel-link {
@@ -37,11 +37,10 @@
 </style>
 {% endblock %}
 
-
 {% block content %}
 <p>
     {% blocktrans with object_name=object_name %}
-    Are you sure you want to delete the device "{{ object_name }}"? 
+    Are you sure you want to delete the interface "{{ object_name }}"? 
     All of the following related items will be deleted:
     {% endblocktrans %}
 </p>
@@ -57,7 +56,6 @@
     {% csrf_token %}
     <div>
         <input type="hidden" name="post" value="yes">
-        
         <input type="submit" value="{% trans 'Yes, I’m sure' %}" class="default">
         <a href="#" onclick="window.history.back(); return false;" class="button cancel-link">{% trans "No, take me back" %}</a>
     </div>
