@@ -22,7 +22,7 @@ function EditDevicePage() {
         setDeviceName(data.device.name); // Set the form field
       } catch (e) {
         setError(e.message);
-      }
+      }0
       setIsLoading(false);
     };
     fetchDevice();

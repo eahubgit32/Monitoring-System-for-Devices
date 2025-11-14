@@ -68,10 +68,16 @@
 /* src/App.css */
 
 .app-header {
-  background-color: #333;
-  color: white;
+/* Dark, solid background */
+  background-color: #1e1e1e;
+  color: #eee;
   padding: 15px 30px;
   font-family: Arial, sans-serif;
+  
+  /* A
+  subtle border to separate it from the wallpaper */
+  border-bottom: 1px solid #333;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .header-content {
@@ -80,6 +86,10 @@
   align-items: center;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+.header-content strong {
+  color: #28a745; /* Green accent for the user's name */
 }
 
 .logout-button {

@@ -66,10 +66,10 @@ function DashboardPage() {
     // Fetch data immediately when the page loads
     fetchDevices(); 
 
-    // Then, set up an interval to re-fetch every 30 seconds (30000 ms)
+    // Then, set up an interval to re-fetch 1 minute
     const pollInterval = setInterval(() => {
       fetchDevices();
-    }, 30000);
+    }, 100000);
 
     // This is CRITICAL: a "cleanup function"
     // It runs when you leave the page to stop the interval
@@ -184,12 +184,13 @@ function DashboardPage() {
     contextIndicatorText = `Filtered: Displaying ${currentDisplayCount} out of ${totalScopeCount} total devices in your scope.`;
   }
   
-  return (
+return (
     <div className="dashboard-container">
       <h1>{dashboardTitle}</h1>
       
       <p className="context-indicator">{contextIndicatorText}</p> 
 
+      {/* --- THIS IS THE MODIFIED SECTION --- */}
       <div className="dashboard-header-bar">
           <div className="dashboard-actions">
             <Link to="/add-device" className="add-device-button">
@@ -197,20 +198,19 @@ function DashboardPage() {
             </Link>
           </div>
           
+          {/* We move the search bar INSIDE here */}
           <div className="filter-controls">
             
-            {/* --- "SHOW HIDDEN" CHECKBOX REMOVED --- */}
-            {/* {isAdmin && (
-              <label className="show-hidden-label">
-                <input 
-                    type="checkbox"
-                    checked={showHidden}
-                    onChange={handleShowHiddenToggle}
-                />
-                Show hidden devices
-              </label>
-            )} */}
+            {/* The search bar now lives here */}
+            <input
+              type="text"
+              placeholder="Filter by device name..."
+              className="search-input"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
 
+            {/* The other filter controls */}
             <label>
                 <input 
                     type="checkbox"
@@ -227,14 +227,6 @@ function DashboardPage() {
             </button>
           </div>
       </div>
-      
-      <input
-        type="text"
-        placeholder="Filter by device name..."
-        className="search-input"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-      />
       
       {finalDeviceList.length === 0 && searchTerm === "" && totalScopeCount > 0 ? (
           <p className="no-devices-message">No devices found in your scope.</p>
